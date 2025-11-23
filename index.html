@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sovereign Flight Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #1e293b;
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #3b82f6;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #3b82f6;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .stats {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+        }
+
+        .stat-value {
+            color: #3b82f6;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 500px;
+            background: #1e293b;
+            border-left: 2px solid #3b82f6;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .chart-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid #334155;
+        }
+
+        .chart-title {
+            color: #e2e8f0;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .chart-wrapper {
+            height: 250px;
+            position: relative;
+        }
+
+        canvas {
+            max-height: 100%;
+        }
+
+        .active-users-list {
+            padding: 1.5rem;
+        }
+
+        .user-item {
+            background: #334155;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #3b82f6;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-info {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .plane-marker {
+            width: 32px;
+            height: 32px;
+            background: #3b82f6;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+            font-size: 16px;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #3b82f6;
+        }
+
+        .leaflet-popup-content {
+            margin: 0.8rem;
+        }
+
+        .popup-content h3 {
+            color: #3b82f6;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .popup-content p {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+        }
+
+        .popup-label {
+            color: #94a3b8;
+            margin-right: 0.5rem;
+        }
+
+        .leaflet-popup-tip {
+            background: #1e293b;
+            border: 1px solid #3b82f6;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                border-left: none;
+                border-top: 2px solid #3b82f6;
+                max-height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>✈️ Sovereign Flight Tracker</h1>
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-label">Active Now:</span>
+                <span class="stat-value" id="activeCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Flights Today:</span>
+                <span class="stat-value" id="todayCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Total Flights:</span>
+                <span class="stat-value" id="totalCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Last Update:</span>
+                <span class="stat-value" id="lastUpdate">-</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="map"></div>
+        <div class="sidebar">
+            <div class="chart-section">
+                <div class="chart-title">Concurrent Active Flights</div>
+                <div class="chart-wrapper">
+                    <canvas id="activeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <div class="chart-title">Flights Per Day (Last 7 Days)</div>
+                <div class="chart-wrapper">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="active-users-list">
+                <div class="chart-title">Active Pilots</div>
+                <div id="usersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://oottnrunlofnpuakiazo.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdHRucnVubG9mbnB1YWtpYXpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjkyNzcsImV4cCI6MjA3OTQwNTI3N30.FdXx4rsuXirUeKxjRK_SxDLQZmSYxBmoCYY1-28-dzI';
+
+        // Initialize map
+        const map = L.map('map').setView([47.0, 8.0], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const planeMarkers = {};
+        
+        // Initialize concurrent active chart
+        const activeCtx = document.getElementById('activeChart').getContext('2d');
+        const activeChart = new Chart(activeCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Active Flights',
+                    data: [],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: '#94a3b8' },
+                        grid: { color: '#334155' }
+                    },
+                    x: {
+                        ticks: { color: '#94a3b8', maxTicksLimit: 8 },
+                        grid: { color: '#334155' }
+                    }
+                }
+            }
+        });
+
+        // Initialize daily flights chart
+        const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+        const dailyChart = new Chart(dailyCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Unique Flights',
+                    data: [],
+                    backgroundColor: '#3b82f6',
+                    borderColor: '#2563eb',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: '#94a3b8' },
+                        grid: { color: '#334155' }
+                    },
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#334155' }
+                    }
+                }
+            }
+        });
+
+        async function fetchActiveSessions() {
+            try {
+                // Mark inactive sessions first
+                await fetch(`${SUPABASE_URL}/rest/v1/rpc/mark_inactive_sessions`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(() => {}); // Ignore errors if function doesn't exist
+
+                // Get active sessions
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/flight_sessions?is_active=eq.true&select=*`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    }
+                );
+
+                if (!response.ok) throw new Error('Failed to fetch sessions');
+                
+                const sessions = await response.json();
+                
+                updateMap(sessions);
+                updateActiveUsers(sessions);
+                updateStats(sessions.length);
+                updateActiveChart(sessions.length);
+
+                return sessions;
+            } catch (error) {
+                console.error('Error fetching sessions:', error);
+                return [];
+            }
+        }
+
+        async function fetchDailyStats() {
+            try {
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/flight_sessions?start_time=gte.${sevenDaysAgo.toISOString()}&select=session_id,start_time`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    }
+                );
+
+                if (!response.ok) throw new Error('Failed to fetch daily stats');
+                
+                const sessions = await response.json();
+                
+                // Count flights per day
+                const dailyCounts = {};
+                sessions.forEach(session => {
+                    const date = new Date(session.start_time).toLocaleDateString();
+                    dailyCounts[date] = (dailyCounts[date] || 0) + 1;
+                });
+
+                // Get last 7 days
+                const labels = [];
+                const data = [];
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    const dateStr = date.toLocaleDateString();
+                    labels.push(dateStr);
+                    data.push(dailyCounts[dateStr] || 0);
+                }
+
+                dailyChart.data.labels = labels;
+                dailyChart.data.datasets[0].data = data;
+                dailyChart.update();
+
+                // Update today's count
+                const today = new Date().toLocaleDateString();
+                document.getElementById('todayCount').textContent = dailyCounts[today] || 0;
+
+            } catch (error) {
+                console.error('Error fetching daily stats:', error);
+            }
+        }
+
+        async function fetchTotalStats() {
+            try {
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/flight_sessions?select=count`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`,
+                            'Prefer': 'count=exact'
+                        }
+                    }
+                );
+
+                const countHeader = response.headers.get('Content-Range');
+                if (countHeader) {
+                    const total = parseInt(countHeader.split('/')[1]);
+                    document.getElementById('totalCount').textContent = total;
+                }
+            } catch (error) {
+                console.error('Error fetching total stats:', error);
+            }
+        }
+
+        function updateMap(sessions) {
+            // Remove old markers
+            const currentSessionIds = new Set(sessions.map(s => s.session_id));
+            Object.keys(planeMarkers).forEach(id => {
+                if (!currentSessionIds.has(id)) {
+                    map.removeLayer(planeMarkers[id]);
+                    delete planeMarkers[id];
+                }
+            });
+
+            // Add or update markers
+            sessions.forEach(session => {
+                if (!session.current_latitude || !session.current_longitude) return;
+
+                const icon = L.divIcon({
+                    className: 'plane-marker',
+                    html: '✈',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+
+                const duration = Math.floor((new Date() - new Date(session.start_time)) / 60000);
+                const popupContent = `
+                    <div class="popup-content">
+                        <h3>${session.username}</h3>
+                        <p><span class="popup-label">Callsign:</span>${session.atc_id}</p>
+                        <p><span class="popup-label">Altitude:</span>${session.current_altitude ? session.current_altitude.toLocaleString() + ' ft' : 'N/A'}</p>
+                        <p><span class="popup-label">Speed:</span>${session.current_speed ? session.current_speed + ' kts' : 'N/A'}</p>
+                        <p><span class="popup-label">Heading:</span>${session.current_heading ? session.current_heading + '°' : 'N/A'}</p>
+                        <p><span class="popup-label">Flying for:</span>${duration} min</p>
+                    </div>
+                `;
+
+                if (planeMarkers[session.session_id]) {
+                    planeMarkers[session.session_id].setLatLng([session.current_latitude, session.current_longitude]);
+                    planeMarkers[session.session_id].setPopupContent(popupContent);
+                } else {
+                    const marker = L.marker([session.current_latitude, session.current_longitude], { icon })
+                        .addTo(map)
+                        .bindPopup(popupContent);
+                    planeMarkers[session.session_id] = marker;
+                    
+                    if (Object.keys(planeMarkers).length === 1) {
+                        map.setView([session.current_latitude, session.current_longitude], 8);
+                    }
+                }
+            });
+
+            // Fit bounds if multiple planes
+            if (sessions.length > 1) {
+                const validSessions = sessions.filter(s => s.current_latitude && s.current_longitude);
+                if (validSessions.length > 0) {
+                    const bounds = L.latLngBounds(validSessions.map(s => [s.current_latitude, s.current_longitude]));
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            }
+        }
+
+        function updateActiveUsers(sessions) {
+            const usersList = document.getElementById('usersList');
+            
+            if (sessions.length === 0) {
+                usersList.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 1rem;">No active flights</div>';
+                return;
+            }
+
+            usersList.innerHTML = sessions.map(session => {
+                const duration = Math.floor((new Date() - new Date(session.start_time)) / 60000);
+                return `
+                    <div class="user-item">
+                        <div class="user-name">${session.username}</div>
+                        <div class="user-info">${session.atc_id} • ${duration} min</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats(activeCount) {
+            document.getElementById('activeCount').textContent = activeCount;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        function updateActiveChart(count) {
+            const now = new Date().toLocaleTimeString();
+            
+            activeChart.data.labels.push(now);
+            activeChart.data.datasets[0].data.push(count);
+
+            // Keep only last 20 data points
+            if (activeChart.data.labels.length > 20) {
+                activeChart.data.labels.shift();
+                activeChart.data.datasets[0].data.shift();
+            }
+
+            activeChart.update();
+        }
+
+        // Initial fetch
+        fetchActiveSessions();
+        fetchDailyStats();
+        fetchTotalStats();
+
+        // Update active sessions every 5 seconds
+        setInterval(fetchActiveSessions, 5000);
+
+        // Update daily stats every 60 seconds
+        setInterval(fetchDailyStats, 60000);
+
+        // Update total stats every 5 minutes
+        setInterval(fetchTotalStats, 300000);
+    </script>
+</body>
+</html>
