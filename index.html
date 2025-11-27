@@ -799,6 +799,10 @@
                     <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
                     Pilots
                 </div>
+                <div class="tab" data-tab="airframes">
+                    <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+                    Airframes
+                </div>
             </div>
 
             <div class="tab-content active" id="overview-tab">
@@ -880,6 +884,31 @@
                     </div>
                 </div>
             </div>
+
+            <div class="tab-content" id="airframes-tab">
+                <div class="pilots-header">
+                    <div class="pilots-count"><span id="totalAirframesCount">0</span> airframes</div>
+                    <div class="sort-dropdown">
+                        <button class="sort-button" id="airframesSortButton">
+                            <svg viewBox="0 0 24 24"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>
+                            <span id="airframesSortLabel">Flights</span>
+                        </button>
+                        <div class="sort-menu" id="airframesSortMenu">
+                            <div class="sort-option active" data-sort="flights">Most Flights</div>
+                            <div class="sort-option" data-sort="hours">Most Hours</div>
+                            <div class="sort-option" data-sort="distance">Most Distance</div>
+                            <div class="sort-option" data-sort="recent">Recently Active</div>
+                            <div class="sort-option" data-sort="name">Registration (A-Z)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="all-pilots-list" id="allAirframesList">
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        Loading airframes...
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -888,8 +917,10 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdHRucnVubG9mbnB1YWtpYXpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjkyNzcsImV4cCI6MjA3OTQwNTI3N30.FdXx4rsuXirUeKxjRK_SxDLQZmSYxBmoCYY1-28-dzI';
 
         let allPilotsData = [];
+        let allAirframesData = [];
         let activeSessions = [];
         let currentSort = 'flights';
+        let currentAirframesSort = 'flights';
 
         const map = L.map('map').setView([47.0, 8.0], 6);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -923,6 +954,9 @@
                 if (tab.dataset.tab === 'pilots' && allPilotsData.length === 0) {
                     fetchAllPilots();
                 }
+                if (tab.dataset.tab === 'airframes' && allAirframesData.length === 0) {
+                    fetchAllAirframes();
+                }
             });
         });
 
@@ -935,17 +969,37 @@
             sortMenu.classList.toggle('active');
         });
 
-        document.addEventListener('click', () => {
-            sortMenu.classList.remove('active');
-        });
-
-        document.querySelectorAll('.sort-option').forEach(option => {
+        document.querySelectorAll('#sortMenu .sort-option').forEach(option => {
             option.addEventListener('click', () => {
-                document.querySelectorAll('.sort-option').forEach(o => o.classList.remove('active'));
+                document.querySelectorAll('#sortMenu .sort-option').forEach(o => o.classList.remove('active'));
                 option.classList.add('active');
                 currentSort = option.dataset.sort;
                 document.getElementById('sortLabel').textContent = option.textContent.replace('Most ', '').replace(' (A-Z)', '');
                 renderAllPilots();
+            });
+        });
+
+        // Airframes sort dropdown
+        const airframesSortButton = document.getElementById('airframesSortButton');
+        const airframesSortMenu = document.getElementById('airframesSortMenu');
+        
+        airframesSortButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            airframesSortMenu.classList.toggle('active');
+        });
+
+        document.addEventListener('click', () => {
+            sortMenu.classList.remove('active');
+            airframesSortMenu.classList.remove('active');
+        });
+
+        airframesSortMenu.querySelectorAll('.sort-option').forEach(option => {
+            option.addEventListener('click', () => {
+                airframesSortMenu.querySelectorAll('.sort-option').forEach(o => o.classList.remove('active'));
+                option.classList.add('active');
+                currentAirframesSort = option.dataset.sort;
+                document.getElementById('airframesSortLabel').textContent = option.textContent.replace('Most ', '').replace(' (A-Z)', '');
+                renderAllAirframes();
             });
         });
 
@@ -1043,6 +1097,9 @@
 
                 if (document.getElementById('pilots-tab').classList.contains('active')) {
                     renderAllPilots();
+                }
+                if (document.getElementById('airframes-tab').classList.contains('active')) {
+                    renderAllAirframes();
                 }
 
                 return activeSessions;
@@ -1205,6 +1262,166 @@
             if (hours < 24) return `${hours}h ago`;
             if (days < 7) return `${days}d ago`;
             return date.toLocaleDateString();
+        }
+
+        async function fetchAllAirframes() {
+            try {
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/flight_sessions?select=session_id,atc_id,username,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    }
+                );
+
+                if (!response.ok) throw new Error('Failed to fetch airframes');
+                
+                const sessions = await response.json();
+                const airframesMap = {};
+                
+                sessions.forEach(session => {
+                    const registration = session.atc_id || 'Unknown';
+                    
+                    if (!airframesMap[registration]) {
+                        airframesMap[registration] = {
+                            registration,
+                            flights: 0,
+                            totalMinutes: 0,
+                            totalNm: 0,
+                            lastFlight: null,
+                            pilots: new Set(),
+                            uniqueSessionIds: new Set()
+                        };
+                    }
+                    
+                    // Track unique sessions to avoid double-counting simultaneous flights
+                    if (!airframesMap[registration].uniqueSessionIds.has(session.session_id)) {
+                        airframesMap[registration].uniqueSessionIds.add(session.session_id);
+                        airframesMap[registration].flights++;
+                        
+                        if (session.end_time && session.start_time) {
+                            const duration = (new Date(session.end_time) - new Date(session.start_time)) / 60000;
+                            if (duration > 0 && duration < 1440) {
+                                airframesMap[registration].totalMinutes += duration;
+                            }
+                        }
+                        
+                        const distance = calculateDistanceNm(
+                            session.start_latitude,
+                            session.start_longitude,
+                            session.current_latitude,
+                            session.current_longitude
+                        );
+                        if (distance > 0 && distance < 15000) {
+                            airframesMap[registration].totalNm += distance;
+                        }
+                    }
+                    
+                    // Track pilots who flew this airframe
+                    if (session.username) {
+                        airframesMap[registration].pilots.add(session.username);
+                    }
+                    
+                    const flightTime = new Date(session.start_time);
+                    if (!airframesMap[registration].lastFlight || flightTime > airframesMap[registration].lastFlight) {
+                        airframesMap[registration].lastFlight = flightTime;
+                    }
+                });
+
+                // Convert Sets to counts
+                allAirframesData = Object.values(airframesMap).map(af => ({
+                    ...af,
+                    pilotCount: af.pilots.size,
+                    pilots: undefined,
+                    uniqueSessionIds: undefined
+                }));
+                
+                document.getElementById('totalAirframesCount').textContent = allAirframesData.length;
+                renderAllAirframes();
+
+            } catch (error) {
+                console.error('Error fetching airframes:', error);
+                document.getElementById('allAirframesList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-text">Failed to load airframes</div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderAllAirframes() {
+            const listEl = document.getElementById('allAirframesList');
+            
+            if (allAirframesData.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+                        </div>
+                        <div class="empty-state-text">No airframes found</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const sortedAirframes = [...allAirframesData].sort((a, b) => {
+                switch (currentAirframesSort) {
+                    case 'flights': return b.flights - a.flights;
+                    case 'hours': return b.totalMinutes - a.totalMinutes;
+                    case 'distance': return b.totalNm - a.totalNm;
+                    case 'recent': return (b.lastFlight || 0) - (a.lastFlight || 0);
+                    case 'name': return a.registration.localeCompare(b.registration);
+                    default: return b.flights - a.flights;
+                }
+            });
+
+            // Get active registrations
+            const activeRegistrations = new Set(activeSessions.map(s => s.atc_id));
+
+            listEl.innerHTML = sortedAirframes.map((airframe, index) => {
+                const hours = Math.floor(airframe.totalMinutes / 60);
+                const mins = Math.round(airframe.totalMinutes % 60);
+                const isOnline = activeRegistrations.has(airframe.registration);
+                const lastFlightStr = airframe.lastFlight ? formatRelativeTime(airframe.lastFlight) : 'Never';
+
+                return `
+                    <div class="all-pilot-card">
+                        <div class="all-pilot-top">
+                            <div class="pilot-rank ${index < 3 ? 'top-3' : ''}">${index + 1}</div>
+                            <div class="all-pilot-info">
+                                <div class="all-pilot-name">${airframe.registration}</div>
+                                <div class="all-pilot-meta">${airframe.pilotCount} pilot${airframe.pilotCount !== 1 ? 's' : ''} - Last active ${lastFlightStr}</div>
+                            </div>
+                            ${isOnline ? `
+                                <div class="pilot-online-badge">
+                                    <div class="status-dot"></div>
+                                    In Use
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="all-pilot-stats">
+                            <div class="all-pilot-stat">
+                                <div class="all-pilot-stat-value">${airframe.flights}</div>
+                                <div class="all-pilot-stat-label">Flights</div>
+                            </div>
+                            <div class="all-pilot-stat">
+                                <div class="all-pilot-stat-value">${hours}h ${mins}m</div>
+                                <div class="all-pilot-stat-label">Flight Time</div>
+                            </div>
+                            <div class="all-pilot-stat">
+                                <div class="all-pilot-stat-value">${airframe.totalNm > 0 ? Math.round(airframe.totalNm).toLocaleString() : '--'}</div>
+                                <div class="all-pilot-stat-label">NM Flown</div>
+                            </div>
+                            <div class="all-pilot-stat">
+                                <div class="all-pilot-stat-value">${airframe.flights > 0 ? Math.round(airframe.totalMinutes / airframe.flights) : 0}</div>
+                                <div class="all-pilot-stat-label">Avg Min</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         async function fetchDailyStats() {
