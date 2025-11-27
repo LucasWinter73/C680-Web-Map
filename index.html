@@ -7,65 +7,116 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: rgba(28, 28, 30, 0.8);
+            --bg-tertiary: rgba(44, 44, 46, 0.6);
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-tertiary: rgba(255, 255, 255, 0.5);
+            --accent: #ffffff;
+            --success: #30d158;
+            --chart-gradient-start: rgba(255, 255, 255, 0.3);
+            --chart-gradient-end: rgba(255, 255, 255, 0.05);
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0f172a;
-            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             height: 100vh;
             display: flex;
             flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         header {
-            background: #1e293b;
-            padding: 1rem 2rem;
-            border-bottom: 2px solid #3b82f6;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            background: var(--bg-secondary);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 1.25rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 100%;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--text-primary);
         }
 
         h1 {
-            color: #3b82f6;
-            font-size: 1.8rem;
+            color: var(--text-primary);
+            font-size: 1.5rem;
             font-weight: 600;
+            letter-spacing: -0.02em;
         }
 
         .stats {
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-            color: #94a3b8;
             display: flex;
-            flex-wrap: wrap;
-            gap: 1.5rem;
+            gap: 2rem;
         }
 
         .stat-item {
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .stat-label {
-            color: #94a3b8;
+            flex-direction: column;
+            align-items: flex-end;
         }
 
         .stat-value {
-            color: #3b82f6;
+            color: var(--text-primary);
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 1.5rem;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .container {
             display: flex;
             flex: 1;
             overflow: hidden;
+            position: relative;
         }
 
         #map {
@@ -74,28 +125,145 @@
         }
 
         .sidebar {
-            width: 500px;
-            background: #1e293b;
-            border-left: 2px solid #3b82f6;
+            width: 420px;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 1rem;
+            flex-shrink: 0;
+        }
+
+        .tab {
+            padding: 1rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab:hover {
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--text-primary);
+        }
+
+        .tab svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            flex: 1;
             overflow-y: auto;
         }
 
-        .chart-section {
-            padding: 1.5rem;
-            border-bottom: 1px solid #334155;
+        .tab-content.active {
+            display: flex;
         }
 
-        .chart-title {
-            color: #e2e8f0;
-            font-size: 1.1rem;
-            margin-bottom: 1rem;
+        .tab-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .tab-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .tab-content::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .section {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            color: var(--text-tertiary);
+            font-size: 0.7rem;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .stat-card-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-card-icon svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--text-secondary);
+        }
+
+        .stat-card-value {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        .stat-card-label {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-top: 0.25rem;
         }
 
         .chart-wrapper {
-            height: 250px;
+            height: 180px;
             position: relative;
         }
 
@@ -103,105 +271,518 @@
             max-height: 100%;
         }
 
-        .active-users-list {
-            padding: 1.5rem;
+        .pilots-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
 
-        .user-item {
-            background: #334155;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            border-radius: 0.5rem;
-            border-left: 3px solid #3b82f6;
+        .pilot-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
         }
 
-        .user-name {
-            font-weight: 600;
-            color: #3b82f6;
-            margin-bottom: 0.25rem;
+        .pilot-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-1px);
         }
 
-        .user-info {
-            font-size: 0.85rem;
-            color: #94a3b8;
-        }
-
-        .plane-marker {
-            width: 32px;
-            height: 32px;
-            background: #3b82f6;
-            border: 2px solid #fff;
-            border-radius: 50%;
+        .pilot-header {
             display: flex;
             align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
-            font-size: 16px;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
         }
 
-        .leaflet-popup-content-wrapper {
-            background: #1e293b;
-            color: #e2e8f0;
-            border: 1px solid #3b82f6;
-        }
-
-        .leaflet-popup-content {
-            margin: 0.8rem;
-        }
-
-        .popup-content h3 {
-            color: #3b82f6;
-            margin-bottom: 0.5rem;
+        .pilot-name {
+            font-weight: 600;
             font-size: 1rem;
+            color: var(--text-primary);
         }
 
-        .popup-content p {
-            margin: 0.25rem 0;
+        .pilot-status {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.75rem;
+            color: var(--success);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pilot-callsign {
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+            margin-bottom: 0.75rem;
+        }
+
+        .pilot-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .pilot-stat {
+            text-align: center;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .pilot-stat-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .pilot-stat-label {
+            font-size: 0.65rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-tertiary);
+        }
+
+        .empty-state-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            opacity: 0.3;
+        }
+
+        .empty-state-icon svg {
+            width: 100%;
+            height: 100%;
+            fill: var(--text-tertiary);
+        }
+
+        .empty-state-text {
             font-size: 0.9rem;
         }
 
-        .popup-label {
-            color: #94a3b8;
-            margin-right: 0.5rem;
+        .pilots-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .pilots-count {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+        }
+
+        .pilots-count span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .sort-dropdown {
+            position: relative;
+        }
+
+        .sort-button {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem 0.875rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .sort-button:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .sort-button svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+
+        .sort-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            background: rgba(44, 44, 46, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.5rem;
+            min-width: 160px;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .sort-menu.active {
+            display: block;
+        }
+
+        .sort-option {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .sort-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .sort-option.active {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .all-pilots-list {
+            padding: 1rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.625rem;
+        }
+
+        .all-pilot-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .all-pilot-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .all-pilot-top {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .pilot-rank {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        .pilot-rank.top-3 {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
+        }
+
+        .all-pilot-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .all-pilot-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .all-pilot-meta {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-top: 0.125rem;
+        }
+
+        .pilot-online-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.7rem;
+            color: var(--success);
+            background: rgba(48, 209, 88, 0.15);
+            padding: 0.25rem 0.625rem;
+            border-radius: 20px;
+        }
+
+        .pilot-online-badge .status-dot {
+            width: 5px;
+            height: 5px;
+        }
+
+        .all-pilot-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+
+        .all-pilot-stat {
+            text-align: center;
+            padding: 0.625rem 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+        }
+
+        .all-pilot-stat-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+
+        .all-pilot-stat-label {
+            font-size: 0.6rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.125rem;
+        }
+
+        .loading-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-tertiary);
+        }
+
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--text-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.75rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .plane-marker {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+        }
+
+        .plane-marker svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .leaflet-container {
+            background: #1c1c1e;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: rgba(28, 28, 30, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .leaflet-popup-content {
+            margin: 1rem 1.25rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
         }
 
         .leaflet-popup-tip {
-            background: #1e293b;
-            border: 1px solid #3b82f6;
+            background: rgba(28, 28, 30, 0.95);
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-left: none;
         }
 
-        @media (max-width: 768px) {
+        .popup-content h3 {
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .popup-callsign {
+            color: var(--text-tertiary);
+            font-size: 0.8rem;
+            font-family: 'SF Mono', monospace;
+            margin-bottom: 1rem;
+        }
+
+        .popup-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .popup-stat {
+            text-align: center;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .popup-stat-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .popup-stat-label {
+            font-size: 0.65rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .leaflet-control-zoom {
+            border: none !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .leaflet-control-zoom a {
+            background: rgba(28, 28, 30, 0.9) !important;
+            backdrop-filter: blur(10px);
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+            font-size: 18px !important;
+        }
+
+        .leaflet-control-zoom a:first-child {
+            border-radius: 10px 10px 0 0 !important;
+        }
+
+        .leaflet-control-zoom a:last-child {
+            border-radius: 0 0 10px 10px !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: rgba(44, 44, 46, 0.9) !important;
+        }
+
+        .leaflet-control-attribution {
+            background: rgba(0, 0, 0, 0.6) !important;
+            color: var(--text-tertiary) !important;
+            font-size: 10px !important;
+            padding: 4px 8px !important;
+            border-radius: 6px 0 0 0 !important;
+        }
+
+        .leaflet-control-attribution a {
+            color: var(--text-secondary) !important;
+        }
+
+        @media (max-width: 900px) {
             .container {
                 flex-direction: column;
             }
             .sidebar {
                 width: 100%;
                 border-left: none;
-                border-top: 2px solid #3b82f6;
+                border-top: 1px solid var(--border-color);
                 max-height: 50vh;
+            }
+            .stats {
+                gap: 1rem;
+            }
+            .stat-item {
+                align-items: center;
+            }
+            .stat-value {
+                font-size: 1.25rem;
+            }
+            .all-pilot-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            header {
+                padding: 1rem;
+            }
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .stats {
+                width: 100%;
+                justify-content: space-between;
+            }
+            h1 {
+                font-size: 1.25rem;
             }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>Sovereign Flight Tracker</h1>
-        <div class="stats">
-            <div class="stat-item">
-                <span class="stat-label">Active Now:</span>
-                <span class="stat-value" id="activeCount">0</span>
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                    </svg>
+                </div>
+                <h1>Sovereign Flight Tracker</h1>
             </div>
-            <div class="stat-item">
-                <span class="stat-label">Flights Today:</span>
-                <span class="stat-value" id="todayCount">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Total Flights:</span>
-                <span class="stat-value" id="totalCount">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Last Update:</span>
-                <span class="stat-value" id="lastUpdate">-</span>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-value" id="activeCount">0</span>
+                    <span class="stat-label">Active</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="todayCount">0</span>
+                    <span class="stat-label">Today</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="totalCount">0</span>
+                    <span class="stat-label">Total</span>
+                </div>
             </div>
         </div>
     </header>
@@ -209,23 +790,95 @@
     <div class="container">
         <div id="map"></div>
         <div class="sidebar">
-            <div class="chart-section">
-                <div class="chart-title">Concurrent Active Flights</div>
-                <div class="chart-wrapper">
-                    <canvas id="activeChart"></canvas>
+            <div class="tabs">
+                <div class="tab active" data-tab="overview">
+                    <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                    Overview
+                </div>
+                <div class="tab" data-tab="pilots">
+                    <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    Pilots
                 </div>
             </div>
 
-            <div class="chart-section">
-                <div class="chart-title">Flights Per Day (Last 7 Days)</div>
-                <div class="chart-wrapper">
-                    <canvas id="dailyChart"></canvas>
+            <div class="tab-content active" id="overview-tab">
+                <div class="section">
+                    <div class="section-title">Flight Statistics</div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="totalHours">0</div>
+                            <div class="stat-card-label">Flight Hours</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="totalFlights">0</div>
+                            <div class="stat-card-label">Total Flights</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="totalNm">0</div>
+                            <div class="stat-card-label">Nautical Miles</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="avgDuration">0</div>
+                            <div class="stat-card-label">Avg Duration (min)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Weekly Activity</div>
+                    <div class="chart-wrapper">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="section" style="flex: 1;">
+                    <div class="section-title">Active Pilots</div>
+                    <div class="pilots-list" id="pilotsList">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+                            </div>
+                            <div class="empty-state-text">No active flights</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="active-users-list">
-                <div class="chart-title">Active Pilots</div>
-                <div id="usersList"></div>
+            <div class="tab-content" id="pilots-tab">
+                <div class="pilots-header">
+                    <div class="pilots-count"><span id="totalPilotsCount">0</span> pilots</div>
+                    <div class="sort-dropdown">
+                        <button class="sort-button" id="sortButton">
+                            <svg viewBox="0 0 24 24"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>
+                            <span id="sortLabel">Flights</span>
+                        </button>
+                        <div class="sort-menu" id="sortMenu">
+                            <div class="sort-option active" data-sort="flights">Most Flights</div>
+                            <div class="sort-option" data-sort="hours">Most Hours</div>
+                            <div class="sort-option" data-sort="distance">Most Distance</div>
+                            <div class="sort-option" data-sort="recent">Recently Active</div>
+                            <div class="sort-option" data-sort="name">Name (A-Z)</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="all-pilots-list" id="allPilotsList">
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        Loading pilots...
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -234,78 +887,126 @@
         const SUPABASE_URL = 'https://oottnrunlofnpuakiazo.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdHRucnVubG9mbnB1YWtpYXpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjkyNzcsImV4cCI6MjA3OTQwNTI3N30.FdXx4rsuXirUeKxjRK_SxDLQZmSYxBmoCYY1-28-dzI';
 
-        // Initialize map
+        let allPilotsData = [];
+        let activeSessions = [];
+        let currentSort = 'flights';
+
         const map = L.map('map').setView([47.0, 8.0], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap © CARTO',
+            maxZoom: 19
         }).addTo(map);
 
         const planeMarkers = {};
-        
-        // Initialize concurrent active chart
-        const activeCtx = document.getElementById('activeChart').getContext('2d');
-        const activeChart = new Chart(activeCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Active Flights',
-                    data: [],
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1, color: '#94a3b8' },
-                        grid: { color: '#334155' }
-                    },
-                    x: {
-                        ticks: { color: '#94a3b8', maxTicksLimit: 8 },
-                        grid: { color: '#334155' }
-                    }
+
+        // Haversine formula - distance in nautical miles
+        function calculateDistanceNm(lat1, lon1, lat2, lon2) {
+            if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+            const R = 3440.065;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                
+                if (tab.dataset.tab === 'pilots' && allPilotsData.length === 0) {
+                    fetchAllPilots();
                 }
-            }
+            });
         });
 
-        // Initialize daily flights chart
+        // Sort dropdown
+        const sortButton = document.getElementById('sortButton');
+        const sortMenu = document.getElementById('sortMenu');
+        
+        sortButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sortMenu.classList.toggle('active');
+        });
+
+        document.addEventListener('click', () => {
+            sortMenu.classList.remove('active');
+        });
+
+        document.querySelectorAll('.sort-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.sort-option').forEach(o => o.classList.remove('active'));
+                option.classList.add('active');
+                currentSort = option.dataset.sort;
+                document.getElementById('sortLabel').textContent = option.textContent.replace('Most ', '').replace(' (A-Z)', '');
+                renderAllPilots();
+            });
+        });
+
+        function createPlaneIcon(heading) {
+            const rotation = heading || 0;
+            return L.divIcon({
+                className: 'plane-marker',
+                html: `<svg viewBox="0 0 24 24" style="transform: rotate(${rotation}deg); fill: white;">
+                    <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                </svg>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+        }
+
+        Chart.defaults.color = 'rgba(255, 255, 255, 0.5)';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+
         const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+        const gradient = dailyCtx.createLinearGradient(0, 0, 0, 180);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+
         const dailyChart = new Chart(dailyCtx, {
             type: 'bar',
             data: {
                 labels: [],
                 datasets: [{
-                    label: 'Unique Flights',
+                    label: 'Flights',
                     data: [],
-                    backgroundColor: '#3b82f6',
-                    borderColor: '#2563eb',
-                    borderWidth: 1
+                    backgroundColor: gradient,
+                    borderColor: 'rgba(255, 255, 255, 0.4)',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    borderSkipped: false
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(28, 28, 30, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: 'rgba(255, 255, 255, 0.7)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        padding: 12
+                    }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: { stepSize: 1, color: '#94a3b8' },
-                        grid: { color: '#334155' }
+                        ticks: { stepSize: 1, font: { size: 11 } },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
                     },
                     x: {
-                        ticks: { color: '#94a3b8' },
-                        grid: { color: '#334155' }
+                        ticks: { font: { size: 10 } },
+                        grid: { display: false }
                     }
                 }
             }
@@ -313,7 +1014,6 @@
 
         async function fetchActiveSessions() {
             try {
-                // Mark inactive sessions first
                 await fetch(`${SUPABASE_URL}/rest/v1/rpc/mark_inactive_sessions`, {
                     method: 'POST',
                     headers: {
@@ -321,9 +1021,8 @@
                         'Authorization': `Bearer ${SUPABASE_KEY}`,
                         'Content-Type': 'application/json'
                     }
-                }).catch(() => {}); // Ignore errors if function doesn't exist
+                }).catch(() => {});
 
-                // Get active sessions
                 const response = await fetch(
                     `${SUPABASE_URL}/rest/v1/flight_sessions?is_active=eq.true&select=*`,
                     {
@@ -336,18 +1035,176 @@
 
                 if (!response.ok) throw new Error('Failed to fetch sessions');
                 
-                const sessions = await response.json();
+                activeSessions = await response.json();
                 
-                updateMap(sessions);
-                updateActiveUsers(sessions);
-                updateStats(sessions.length);
-                updateActiveChart(sessions.length);
+                updateMap(activeSessions);
+                updatePilotsList(activeSessions);
+                document.getElementById('activeCount').textContent = activeSessions.length;
 
-                return sessions;
+                if (document.getElementById('pilots-tab').classList.contains('active')) {
+                    renderAllPilots();
+                }
+
+                return activeSessions;
             } catch (error) {
                 console.error('Error fetching sessions:', error);
                 return [];
             }
+        }
+
+        async function fetchAllPilots() {
+            try {
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/flight_sessions?select=username,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    }
+                );
+
+                if (!response.ok) throw new Error('Failed to fetch pilots');
+                
+                const sessions = await response.json();
+                const pilotsMap = {};
+                
+                sessions.forEach(session => {
+                    const username = session.username || 'Unknown';
+                    
+                    if (!pilotsMap[username]) {
+                        pilotsMap[username] = {
+                            username,
+                            flights: 0,
+                            totalMinutes: 0,
+                            totalNm: 0,
+                            lastFlight: null
+                        };
+                    }
+                    
+                    pilotsMap[username].flights++;
+                    
+                    if (session.end_time && session.start_time) {
+                        const duration = (new Date(session.end_time) - new Date(session.start_time)) / 60000;
+                        if (duration > 0 && duration < 1440) {
+                            pilotsMap[username].totalMinutes += duration;
+                        }
+                    }
+                    
+                    const distance = calculateDistanceNm(
+                        session.start_latitude,
+                        session.start_longitude,
+                        session.current_latitude,
+                        session.current_longitude
+                    );
+                    if (distance > 0 && distance < 15000) {
+                        pilotsMap[username].totalNm += distance;
+                    }
+                    
+                    const flightTime = new Date(session.start_time);
+                    if (!pilotsMap[username].lastFlight || flightTime > pilotsMap[username].lastFlight) {
+                        pilotsMap[username].lastFlight = flightTime;
+                    }
+                });
+
+                allPilotsData = Object.values(pilotsMap);
+                document.getElementById('totalPilotsCount').textContent = allPilotsData.length;
+                renderAllPilots();
+
+            } catch (error) {
+                console.error('Error fetching pilots:', error);
+                document.getElementById('allPilotsList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-text">Failed to load pilots</div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderAllPilots() {
+            const listEl = document.getElementById('allPilotsList');
+            
+            if (allPilotsData.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                        </div>
+                        <div class="empty-state-text">No pilots found</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const sortedPilots = [...allPilotsData].sort((a, b) => {
+                switch (currentSort) {
+                    case 'flights': return b.flights - a.flights;
+                    case 'hours': return b.totalMinutes - a.totalMinutes;
+                    case 'distance': return b.totalNm - a.totalNm;
+                    case 'recent': return (b.lastFlight || 0) - (a.lastFlight || 0);
+                    case 'name': return a.username.localeCompare(b.username);
+                    default: return b.flights - a.flights;
+                }
+            });
+
+            const activeUsernames = new Set(activeSessions.map(s => s.username));
+
+            listEl.innerHTML = sortedPilots.map((pilot, index) => {
+                const hours = Math.floor(pilot.totalMinutes / 60);
+                const mins = Math.round(pilot.totalMinutes % 60);
+                const isOnline = activeUsernames.has(pilot.username);
+                const lastFlightStr = pilot.lastFlight ? formatRelativeTime(pilot.lastFlight) : 'Never';
+
+                return `
+                    <div class="all-pilot-card">
+                        <div class="all-pilot-top">
+                            <div class="pilot-rank ${index < 3 ? 'top-3' : ''}">${index + 1}</div>
+                            <div class="all-pilot-info">
+                                <div class="all-pilot-name">${pilot.username}</div>
+                                <div class="all-pilot-meta">Last active ${lastFlightStr}</div>
+                            </div>
+                            ${isOnline ? `
+                                <div class="pilot-online-badge">
+                                    <div class="status-dot"></div>
+                                    Online
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="all-pilot-stats">
+                            <div class="all-pilot-stat">
+                                <div class="all-pilot-stat-value">${pilot.flights}</div>
+                                <div class="all-pilot-stat-label">Flights</div>
+                            </div>
+                            <div class="all-pilot-stat">
+                                <div class="all-pilot-stat-value">${hours}h ${mins}m</div>
+                                <div class="all-pilot-stat-label">Flight Time</div>
+                            </div>
+                            <div class="all-pilot-stat">
+                                <div class="all-pilot-stat-value">${pilot.totalNm > 0 ? Math.round(pilot.totalNm).toLocaleString() : '--'}</div>
+                                <div class="all-pilot-stat-label">NM Flown</div>
+                            </div>
+                            <div class="all-pilot-stat">
+                                <div class="all-pilot-stat-value">${pilot.flights > 0 ? Math.round(pilot.totalMinutes / pilot.flights) : 0}</div>
+                                <div class="all-pilot-stat-label">Avg Min</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatRelativeTime(date) {
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (minutes < 1) return 'just now';
+            if (minutes < 60) return `${minutes}m ago`;
+            if (hours < 24) return `${hours}h ago`;
+            if (days < 7) return `${days}d ago`;
+            return date.toLocaleDateString();
         }
 
         async function fetchDailyStats() {
@@ -369,31 +1226,24 @@
                 
                 const sessions = await response.json();
                 
-                // Count flights per day
-                const dailyCounts = {};
-                sessions.forEach(session => {
-                    const date = new Date(session.start_time).toLocaleDateString();
-                    dailyCounts[date] = (dailyCounts[date] || 0) + 1;
-                });
-
-                // Get last 7 days
                 const labels = [];
                 const data = [];
                 for (let i = 6; i >= 0; i--) {
                     const date = new Date();
                     date.setDate(date.getDate() - i);
-                    const dateStr = date.toLocaleDateString();
+                    const dateStr = date.toLocaleDateString('en-US', { weekday: 'short' });
                     labels.push(dateStr);
-                    data.push(dailyCounts[dateStr] || 0);
+                    const fullDate = date.toLocaleDateString();
+                    data.push(sessions.filter(s => new Date(s.start_time).toLocaleDateString() === fullDate).length);
                 }
 
                 dailyChart.data.labels = labels;
                 dailyChart.data.datasets[0].data = data;
                 dailyChart.update();
 
-                // Update today's count
                 const today = new Date().toLocaleDateString();
-                document.getElementById('todayCount').textContent = dailyCounts[today] || 0;
+                const todayFlights = sessions.filter(s => new Date(s.start_time).toLocaleDateString() === today).length;
+                document.getElementById('todayCount').textContent = todayFlights;
 
             } catch (error) {
                 console.error('Error fetching daily stats:', error);
@@ -403,29 +1253,61 @@
         async function fetchTotalStats() {
             try {
                 const response = await fetch(
-                    `${SUPABASE_URL}/rest/v1/flight_sessions?select=count`,
+                    `${SUPABASE_URL}/rest/v1/flight_sessions?select=session_id,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude`,
                     {
                         headers: {
                             'apikey': SUPABASE_KEY,
-                            'Authorization': `Bearer ${SUPABASE_KEY}`,
-                            'Prefer': 'count=exact'
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
                         }
                     }
                 );
 
-                const countHeader = response.headers.get('Content-Range');
-                if (countHeader) {
-                    const total = parseInt(countHeader.split('/')[1]);
-                    document.getElementById('totalCount').textContent = total;
-                }
+                if (!response.ok) throw new Error('Failed to fetch total stats');
+                
+                const sessions = await response.json();
+                
+                document.getElementById('totalCount').textContent = sessions.length;
+                document.getElementById('totalFlights').textContent = sessions.length.toLocaleString();
+
+                let totalMinutes = 0;
+                let completedFlights = 0;
+                let totalNm = 0;
+
+                sessions.forEach(session => {
+                    if (session.end_time && session.start_time) {
+                        const duration = (new Date(session.end_time) - new Date(session.start_time)) / 60000;
+                        if (duration > 0 && duration < 1440) {
+                            totalMinutes += duration;
+                            completedFlights++;
+                        }
+                    }
+                    
+                    const distance = calculateDistanceNm(
+                        session.start_latitude,
+                        session.start_longitude,
+                        session.current_latitude,
+                        session.current_longitude
+                    );
+                    if (distance > 0 && distance < 15000) {
+                        totalNm += distance;
+                    }
+                });
+
+                const totalHours = Math.round(totalMinutes / 60);
+                const avgDuration = completedFlights > 0 ? Math.round(totalMinutes / completedFlights) : 0;
+
+                document.getElementById('totalHours').textContent = totalHours.toLocaleString();
+                document.getElementById('totalNm').textContent = totalNm > 0 ? Math.round(totalNm).toLocaleString() : '--';
+                document.getElementById('avgDuration').textContent = avgDuration;
+
             } catch (error) {
                 console.error('Error fetching total stats:', error);
             }
         }
 
         function updateMap(sessions) {
-            // Remove old markers
             const currentSessionIds = new Set(sessions.map(s => s.session_id));
+            
             Object.keys(planeMarkers).forEach(id => {
                 if (!currentSessionIds.has(id)) {
                     map.removeLayer(planeMarkers[id]);
@@ -433,31 +1315,40 @@
                 }
             });
 
-            // Add or update markers
             sessions.forEach(session => {
                 if (!session.current_latitude || !session.current_longitude) return;
 
-                const icon = L.divIcon({
-                    className: 'plane-marker',
-                    html: '✈',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
-                });
-
+                const icon = createPlaneIcon(session.current_heading);
                 const duration = Math.floor((new Date() - new Date(session.start_time)) / 60000);
+                
                 const popupContent = `
                     <div class="popup-content">
                         <h3>${session.username}</h3>
-                        <p><span class="popup-label">Callsign:</span>${session.atc_id}</p>
-                        <p><span class="popup-label">Altitude:</span>${session.current_altitude ? session.current_altitude.toLocaleString() + ' ft' : 'N/A'}</p>
-                        <p><span class="popup-label">Speed:</span>${session.current_speed ? session.current_speed + ' kts' : 'N/A'}</p>
-                        <p><span class="popup-label">Heading:</span>${session.current_heading ? session.current_heading + '°' : 'N/A'}</p>
-                        <p><span class="popup-label">Flying for:</span>${duration} min</p>
+                        <div class="popup-callsign">${session.atc_id || 'N/A'}</div>
+                        <div class="popup-grid">
+                            <div class="popup-stat">
+                                <div class="popup-stat-value">${session.current_altitude ? Math.round(session.current_altitude).toLocaleString() : '--'}</div>
+                                <div class="popup-stat-label">Altitude (ft)</div>
+                            </div>
+                            <div class="popup-stat">
+                                <div class="popup-stat-value">${session.current_speed ? Math.round(session.current_speed) : '--'}</div>
+                                <div class="popup-stat-label">Speed (kts)</div>
+                            </div>
+                            <div class="popup-stat">
+                                <div class="popup-stat-value">${session.current_heading ? Math.round(session.current_heading) + '°' : '--'}</div>
+                                <div class="popup-stat-label">Heading</div>
+                            </div>
+                            <div class="popup-stat">
+                                <div class="popup-stat-value">${duration}</div>
+                                <div class="popup-stat-label">Duration (min)</div>
+                            </div>
+                        </div>
                     </div>
                 `;
 
                 if (planeMarkers[session.session_id]) {
                     planeMarkers[session.session_id].setLatLng([session.current_latitude, session.current_longitude]);
+                    planeMarkers[session.session_id].setIcon(icon);
                     planeMarkers[session.session_id].setPopupContent(popupContent);
                 } else {
                     const marker = L.marker([session.current_latitude, session.current_longitude], { icon })
@@ -471,7 +1362,6 @@
                 }
             });
 
-            // Fit bounds if multiple planes
             if (sessions.length > 1) {
                 const validSessions = sessions.filter(s => s.current_latitude && s.current_longitude);
                 if (validSessions.length > 0) {
@@ -481,43 +1371,58 @@
             }
         }
 
-        function updateActiveUsers(sessions) {
-            const usersList = document.getElementById('usersList');
+        function updatePilotsList(sessions) {
+            const pilotsList = document.getElementById('pilotsList');
             
             if (sessions.length === 0) {
-                usersList.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 1rem;">No active flights</div>';
+                pilotsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+                        </div>
+                        <div class="empty-state-text">No active flights</div>
+                    </div>
+                `;
                 return;
             }
 
-            usersList.innerHTML = sessions.map(session => {
+            pilotsList.innerHTML = sessions.map(session => {
                 const duration = Math.floor((new Date() - new Date(session.start_time)) / 60000);
                 return `
-                    <div class="user-item">
-                        <div class="user-name">${session.username}</div>
-                        <div class="user-info">${session.atc_id} • ${duration} min</div>
+                    <div class="pilot-card" onclick="focusPilot('${session.session_id}')">
+                        <div class="pilot-header">
+                            <div class="pilot-name">${session.username}</div>
+                            <div class="pilot-status">
+                                <div class="status-dot"></div>
+                                Live
+                            </div>
+                        </div>
+                        <div class="pilot-callsign">${session.atc_id || 'N/A'}</div>
+                        <div class="pilot-stats">
+                            <div class="pilot-stat">
+                                <div class="pilot-stat-value">${session.current_altitude ? Math.round(session.current_altitude / 100) * 100 : '--'}</div>
+                                <div class="pilot-stat-label">Alt (ft)</div>
+                            </div>
+                            <div class="pilot-stat">
+                                <div class="pilot-stat-value">${session.current_speed ? Math.round(session.current_speed) : '--'}</div>
+                                <div class="pilot-stat-label">Kts</div>
+                            </div>
+                            <div class="pilot-stat">
+                                <div class="pilot-stat-value">${duration}</div>
+                                <div class="pilot-stat-label">Min</div>
+                            </div>
+                        </div>
                     </div>
                 `;
             }).join('');
         }
 
-        function updateStats(activeCount) {
-            document.getElementById('activeCount').textContent = activeCount;
-            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-        }
-
-        function updateActiveChart(count) {
-            const now = new Date().toLocaleTimeString();
-            
-            activeChart.data.labels.push(now);
-            activeChart.data.datasets[0].data.push(count);
-
-            // Keep only last 20 data points
-            if (activeChart.data.labels.length > 20) {
-                activeChart.data.labels.shift();
-                activeChart.data.datasets[0].data.shift();
+        function focusPilot(sessionId) {
+            const marker = planeMarkers[sessionId];
+            if (marker) {
+                map.setView(marker.getLatLng(), 10);
+                marker.openPopup();
             }
-
-            activeChart.update();
         }
 
         // Initial fetch
@@ -525,13 +1430,9 @@
         fetchDailyStats();
         fetchTotalStats();
 
-        // Update active sessions every 5 seconds
+        // Update intervals
         setInterval(fetchActiveSessions, 5000);
-
-        // Update daily stats every 60 seconds
         setInterval(fetchDailyStats, 60000);
-
-        // Update total stats every 5 minutes
         setInterval(fetchTotalStats, 300000);
     </script>
 </body>
