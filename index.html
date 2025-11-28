@@ -925,8 +925,8 @@
                             <div class="stat-card-icon">
                                 <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z"/></svg>
                             </div>
-                            <div class="stat-card-value" id="avgDuration">0</div>
-                            <div class="stat-card-label">Avg Duration (min)</div>
+                            <div class="stat-card-value" id="avgDuration">0m</div>
+                            <div class="stat-card-label">Avg Duration</div>
                         </div>
                     </div>
                 </div>
@@ -1002,6 +1002,39 @@
             </div>
 
             <div class="tab-content" id="routes-tab">
+                <div class="section">
+                    <div class="section-title">Route Statistics</div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M14 6l-1-2H5v17h2v-7h5l1 2h7V6h-6zm4 8h-4l-1-2H7V6h5l1 2h5v6z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="routeTotalFlights">0</div>
+                            <div class="stat-card-label">Completed Flights</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="routeTotalHours">0</div>
+                            <div class="stat-card-label">Flight Hours</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="routeTotalNm">0</div>
+                            <div class="stat-card-label">Nautical Miles</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="routeAvgDuration">0m</div>
+                            <div class="stat-card-label">Avg Duration</div>
+                        </div>
+                    </div>
+                </div>
                 <div class="pilots-header">
                     <div class="pilots-count"><span id="totalRoutesCount">0</span> routes</div>
                     <div class="sort-dropdown">
@@ -1057,6 +1090,16 @@
                       Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c;
+        }
+
+        // Format minutes to hours and minutes
+        function formatDuration(minutes) {
+            if (!minutes || minutes <= 0) return '0m';
+            const hrs = Math.floor(minutes / 60);
+            const mins = Math.round(minutes % 60);
+            if (hrs === 0) return `${mins}m`;
+            if (mins === 0) return `${hrs}h`;
+            return `${hrs}h ${mins}m`;
         }
 
         // Tab switching
@@ -1380,8 +1423,8 @@
                                 <div class="all-pilot-stat-label">NM Flown</div>
                             </div>
                             <div class="all-pilot-stat">
-                                <div class="all-pilot-stat-value">${pilot.flights > 0 ? Math.round(pilot.totalMinutes / pilot.flights) : 0}</div>
-                                <div class="all-pilot-stat-label">Avg Min</div>
+                                <div class="all-pilot-stat-value">${pilot.flights > 0 ? formatDuration(pilot.totalMinutes / pilot.flights) : '0m'}</div>
+                                <div class="all-pilot-stat-label">Avg Time</div>
                             </div>
                         </div>
                     </div>
@@ -1554,8 +1597,8 @@
                                 <div class="all-pilot-stat-label">NM Flown</div>
                             </div>
                             <div class="all-pilot-stat">
-                                <div class="all-pilot-stat-value">${airframe.flights > 0 ? Math.round(airframe.totalMinutes / airframe.flights) : 0}</div>
-                                <div class="all-pilot-stat-label">Avg Min</div>
+                                <div class="all-pilot-stat-value">${airframe.flights > 0 ? formatDuration(airframe.totalMinutes / airframe.flights) : '0m'}</div>
+                                <div class="all-pilot-stat-label">Avg Time</div>
                             </div>
                         </div>
                     </div>
@@ -1630,6 +1673,23 @@
 
                 allRoutesData = Object.values(routesMap);
                 document.getElementById('totalRoutesCount').textContent = allRoutesData.length;
+                
+                // Calculate route statistics
+                let routeTotalFlights = 0;
+                let routeTotalMinutes = 0;
+                let routeTotalNm = 0;
+                
+                allRoutesData.forEach(route => {
+                    routeTotalFlights += route.flights;
+                    routeTotalMinutes += route.totalMinutes;
+                    routeTotalNm += route.distance * route.flights; // distance per flight * number of flights
+                });
+                
+                document.getElementById('routeTotalFlights').textContent = routeTotalFlights.toLocaleString();
+                document.getElementById('routeTotalHours').textContent = Math.round(routeTotalMinutes / 60).toLocaleString();
+                document.getElementById('routeTotalNm').textContent = Math.round(routeTotalNm).toLocaleString();
+                document.getElementById('routeAvgDuration').textContent = routeTotalFlights > 0 ? formatDuration(routeTotalMinutes / routeTotalFlights) : '0m';
+                
                 renderAllRoutes();
 
             } catch (error) {
@@ -1694,8 +1754,8 @@
                                 <div class="all-pilot-stat-label">NM</div>
                             </div>
                             <div class="all-pilot-stat">
-                                <div class="all-pilot-stat-value">${avgMinutes}</div>
-                                <div class="all-pilot-stat-label">Avg Min</div>
+                                <div class="all-pilot-stat-value">${route.flights > 0 ? formatDuration(route.totalMinutes / route.flights) : '0m'}</div>
+                                <div class="all-pilot-stat-label">Avg Time</div>
                             </div>
                             <div class="all-pilot-stat">
                                 <div class="all-pilot-stat-value">${lastFlightStr.replace(' ago', '')}</div>
@@ -1794,11 +1854,11 @@
                 });
 
                 const totalHours = Math.round(totalMinutes / 60);
-                const avgDuration = completedFlights > 0 ? Math.round(totalMinutes / completedFlights) : 0;
+                const avgDuration = completedFlights > 0 ? totalMinutes / completedFlights : 0;
 
                 document.getElementById('totalHours').textContent = totalHours.toLocaleString();
                 document.getElementById('totalNm').textContent = totalNm > 0 ? Math.round(totalNm).toLocaleString() : '--';
-                document.getElementById('avgDuration').textContent = avgDuration;
+                document.getElementById('avgDuration').textContent = formatDuration(avgDuration);
 
             } catch (error) {
                 console.error('Error fetching total stats:', error);
