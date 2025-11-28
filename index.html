@@ -1899,8 +1899,8 @@
                                 <div class="popup-stat-label">Heading</div>
                             </div>
                             <div class="popup-stat">
-                                <div class="popup-stat-value">${duration}</div>
-                                <div class="popup-stat-label">Duration (min)</div>
+                                <div class="popup-stat-value">${formatDuration(duration)}</div>
+                                <div class="popup-stat-label">Duration</div>
                             </div>
                         </div>
                     </div>
@@ -1915,20 +1915,8 @@
                         .addTo(map)
                         .bindPopup(popupContent);
                     planeMarkers[session.session_id] = marker;
-                    
-                    if (Object.keys(planeMarkers).length === 1) {
-                        map.setView([session.current_latitude, session.current_longitude], 8);
-                    }
                 }
             });
-
-            if (sessions.length > 1) {
-                const validSessions = sessions.filter(s => s.current_latitude && s.current_longitude);
-                if (validSessions.length > 0) {
-                    const bounds = L.latLngBounds(validSessions.map(s => [s.current_latitude, s.current_longitude]));
-                    map.fitBounds(bounds, { padding: [50, 50] });
-                }
-            }
         }
 
         function updatePilotsList(sessions) {
@@ -1968,8 +1956,8 @@
                                 <div class="pilot-stat-label">Kts</div>
                             </div>
                             <div class="pilot-stat">
-                                <div class="pilot-stat-value">${duration}</div>
-                                <div class="pilot-stat-label">Min</div>
+                                <div class="pilot-stat-value">${formatDuration(duration)}</div>
+                                <div class="pilot-stat-label">Time</div>
                             </div>
                         </div>
                     </div>
