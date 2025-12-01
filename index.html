@@ -137,28 +137,27 @@
 
         .tabs {
             display: flex;
+            justify-content: space-around;
             border-bottom: 1px solid var(--border-color);
-            padding: 0 0.5rem;
+            padding: 0 1.5rem;
             flex-shrink: 0;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .tabs::-webkit-scrollbar {
-            display: none;
+            overflow: hidden;
         }
 
         .tab {
-            padding: 1rem 1rem;
+            padding: 1rem 0.75rem;
             font-size: 0.8rem;
             font-weight: 500;
             color: var(--text-tertiary);
             cursor: pointer;
             border-bottom: 2px solid transparent;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
-            gap: 0.4rem;
+            justify-content: center;
+            gap: 0;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         .tab:hover {
@@ -168,12 +167,33 @@
         .tab.active {
             color: var(--text-primary);
             border-bottom-color: var(--text-primary);
+            gap: 0.5rem;
         }
 
         .tab svg {
-            width: 14px;
-            height: 14px;
+            width: 18px;
+            height: 18px;
             fill: currentColor;
+            flex-shrink: 0;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab.active svg {
+            transform: scale(1.1);
+        }
+
+        .tab-label {
+            max-width: 0;
+            opacity: 0;
+            transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        opacity 0.2s ease,
+                        margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .tab.active .tab-label {
+            max-width: 100px;
+            opacity: 1;
         }
 
         .tab-content {
@@ -880,19 +900,19 @@
             <div class="tabs">
                 <div class="tab active" data-tab="overview">
                     <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-                    Overview
+                    <span class="tab-label">Overview</span>
                 </div>
                 <div class="tab" data-tab="pilots">
                     <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                    Activat.
+                    <span class="tab-label">Activations</span>
                 </div>
                 <div class="tab" data-tab="airframes">
                     <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
-                    Airframes
+                    <span class="tab-label">Airframes</span>
                 </div>
                 <div class="tab" data-tab="routes">
                     <svg viewBox="0 0 24 24"><path d="M14 6l-1-2H5v17h2v-7h5l1 2h7V6h-6zm4 8h-4l-1-2H7V6h5l1 2h5v6z"/></svg>
-                    Routes
+                    <span class="tab-label">Routes</span>
                 </div>
             </div>
 
@@ -952,23 +972,51 @@
             </div>
 
             <div class="tab-content" id="pilots-tab">
-                <div class="pilots-header">
-                    <div class="pilots-count"><span id="totalPilotsCount">0</span> activations</div>
-                    <div class="sort-dropdown">
-                        <button class="sort-button" id="sortButton">
-                            <svg viewBox="0 0 24 24"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>
-                            <span id="sortLabel">Recent</span>
-                        </button>
-                        <div class="sort-menu" id="sortMenu">
-                            <div class="sort-option active" data-sort="recent">Most Recent</div>
-                            <div class="sort-option" data-sort="oldest">Oldest First</div>
+                <div class="section">
+                    <div class="section-title">Activation Statistics</div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="totalActivations">0</div>
+                            <div class="stat-card-label">Total Activations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="activationsToday">0</div>
+                            <div class="stat-card-label">Today</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="activationsThisWeek">0</div>
+                            <div class="stat-card-label">This Week</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-icon">
+                                <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z"/></svg>
+                            </div>
+                            <div class="stat-card-value" id="activationsThisMonth">0</div>
+                            <div class="stat-card-label">This Month</div>
                         </div>
                     </div>
                 </div>
-                <div class="all-pilots-list" id="allPilotsList">
-                    <div class="loading-state">
-                        <div class="loading-spinner"></div>
-                        Loading activations...
+
+                <div class="section">
+                    <div class="section-title">Daily Activations (Last 7 Days)</div>
+                    <div class="chart-wrapper">
+                        <canvas id="activationsDailyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Monthly Activations</div>
+                    <div class="chart-wrapper">
+                        <canvas id="activationsMonthlyChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -1032,6 +1080,12 @@
                         </div>
                     </div>
                 </div>
+                <div class="section">
+                    <div class="section-title">Weekly Route Activity</div>
+                    <div class="chart-wrapper">
+                        <canvas id="routesDailyChart"></canvas>
+                    </div>
+                </div>
                 <div class="pilots-header">
                     <div class="pilots-count"><span id="totalRoutesCount">0</span> routes</div>
                     <div class="sort-dropdown">
@@ -1060,11 +1114,10 @@
         const SUPABASE_URL = 'https://oottnrunlofnpuakiazo.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vdHRucnVubG9mbnB1YWtpYXpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4MjkyNzcsImV4cCI6MjA3OTQwNTI3N30.FdXx4rsuXirUeKxjRK_SxDLQZmSYxBmoCYY1-28-dzI';
 
-        let allPilotsData = [];
         let allAirframesData = [];
         let allRoutesData = [];
         let activeSessions = [];
-        let currentSort = 'recent';
+        let activationsLoaded = false;
         let currentAirframesSort = 'flights';
         let currentRoutesSort = 'flights';
 
@@ -1107,8 +1160,9 @@
                 tab.classList.add('active');
                 document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
                 
-                if (tab.dataset.tab === 'pilots' && allPilotsData.length === 0) {
+                if (tab.dataset.tab === 'pilots' && !activationsLoaded) {
                     fetchAllPilots();
+                    activationsLoaded = true;
                 }
                 if (tab.dataset.tab === 'airframes' && allAirframesData.length === 0) {
                     fetchAllAirframes();
@@ -1116,25 +1170,6 @@
                 if (tab.dataset.tab === 'routes' && allRoutesData.length === 0) {
                     fetchAllRoutes();
                 }
-            });
-        });
-
-        // Sort dropdown
-        const sortButton = document.getElementById('sortButton');
-        const sortMenu = document.getElementById('sortMenu');
-        
-        sortButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            sortMenu.classList.toggle('active');
-        });
-
-        document.querySelectorAll('#sortMenu .sort-option').forEach(option => {
-            option.addEventListener('click', () => {
-                document.querySelectorAll('#sortMenu .sort-option').forEach(o => o.classList.remove('active'));
-                option.classList.add('active');
-                currentSort = option.dataset.sort;
-                document.getElementById('sortLabel').textContent = option.textContent.replace('Most ', '').replace(' First', '');
-                renderAllPilots();
             });
         });
 
@@ -1148,7 +1183,6 @@
         });
 
         document.addEventListener('click', () => {
-            sortMenu.classList.remove('active');
             airframesSortMenu.classList.remove('active');
             routesSortMenu.classList.remove('active');
         });
@@ -1206,19 +1240,44 @@
             type: 'bar',
             data: {
                 labels: [],
-                datasets: [{
-                    label: 'Flights',
-                    data: [],
-                    backgroundColor: gradient,
-                    borderColor: 'rgba(255, 255, 255, 0.4)',
-                    borderWidth: 1,
-                    borderRadius: 6,
-                    borderSkipped: false
-                }]
+                datasets: [
+                    {
+                        label: 'Flights',
+                        data: [],
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(255, 255, 255, 0.4)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        yAxisID: 'y',
+                        order: 2
+                    },
+                    {
+                        label: 'Avg Duration',
+                        data: [],
+                        type: 'line',
+                        borderColor: 'rgba(48, 209, 88, 0.9)',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(48, 209, 88, 1)',
+                        pointBorderColor: 'rgba(48, 209, 88, 1)',
+                        pointBorderWidth: 0,
+                        pointRadius: 2,
+                        pointHoverRadius: 4,
+                        yAxisID: 'y1',
+                        order: 1
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -1228,14 +1287,178 @@
                         borderColor: 'rgba(255, 255, 255, 0.1)',
                         borderWidth: 1,
                         cornerRadius: 8,
-                        padding: 12
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.label === 'Avg Duration') {
+                                    const mins = context.raw;
+                                    if (!mins) return 'Avg Duration: --';
+                                    const hrs = Math.floor(mins / 60);
+                                    const m = Math.round(mins % 60);
+                                    if (hrs === 0) return `Avg Duration: ${m}m`;
+                                    if (m === 0) return `Avg Duration: ${hrs}h`;
+                                    return `Avg Duration: ${hrs}h ${m}m`;
+                                }
+                                return `Flights: ${context.raw}`;
+                            }
+                        }
                     }
                 },
                 scales: {
                     y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
                         beginAtZero: true,
-                        ticks: { stepSize: 1, font: { size: 11 } },
+                        ticks: { 
+                            stepSize: 1, 
+                            font: { size: 11 },
+                            color: 'rgba(255, 255, 255, 0.5)'
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        title: {
+                            display: false
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        ticks: { 
+                            font: { size: 11 },
+                            color: 'rgba(48, 209, 88, 0.7)',
+                            callback: function(value) {
+                                const hrs = Math.floor(value / 60);
+                                const mins = Math.round(value % 60);
+                                if (value === 0) return '0m';
+                                if (hrs === 0) return `${mins}m`;
+                                if (mins === 0) return `${hrs}h`;
+                                return `${hrs}h`;
+                            }
+                        },
+                        grid: { 
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    x: {
+                        ticks: { font: { size: 10 } },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // Routes daily chart
+        const routesDailyCtx = document.getElementById('routesDailyChart').getContext('2d');
+        const routesGradient = routesDailyCtx.createLinearGradient(0, 0, 0, 180);
+        routesGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        routesGradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+
+        const routesDailyChart = new Chart(routesDailyCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Routes',
+                        data: [],
+                        backgroundColor: routesGradient,
+                        borderColor: 'rgba(255, 255, 255, 0.4)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        yAxisID: 'y',
+                        order: 2
+                    },
+                    {
+                        label: 'Avg Duration',
+                        data: [],
+                        type: 'line',
+                        borderColor: 'rgba(48, 209, 88, 0.9)',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(48, 209, 88, 1)',
+                        pointBorderColor: 'rgba(48, 209, 88, 1)',
+                        pointBorderWidth: 0,
+                        pointRadius: 2,
+                        pointHoverRadius: 4,
+                        yAxisID: 'y1',
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(28, 28, 30, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: 'rgba(255, 255, 255, 0.7)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.label === 'Avg Duration') {
+                                    const mins = context.raw;
+                                    if (!mins) return 'Avg Duration: --';
+                                    const hrs = Math.floor(mins / 60);
+                                    const m = Math.round(mins % 60);
+                                    if (hrs === 0) return `Avg Duration: ${m}m`;
+                                    if (m === 0) return `Avg Duration: ${hrs}h`;
+                                    return `Avg Duration: ${hrs}h ${m}m`;
+                                }
+                                return `Routes: ${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        ticks: { 
+                            stepSize: 1, 
+                            font: { size: 11 },
+                            color: 'rgba(255, 255, 255, 0.5)'
+                        },
                         grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        ticks: { 
+                            font: { size: 11 },
+                            color: 'rgba(48, 209, 88, 0.7)',
+                            callback: function(value) {
+                                const hrs = Math.floor(value / 60);
+                                const mins = Math.round(value % 60);
+                                if (value === 0) return '0m';
+                                if (hrs === 0) return `${mins}m`;
+                                if (mins === 0) return `${hrs}h`;
+                                return `${hrs}h`;
+                            }
+                        },
+                        grid: { 
+                            drawOnChartArea: false
+                        }
                     },
                     x: {
                         ticks: { font: { size: 10 } },
@@ -1274,9 +1497,6 @@
                 updatePilotsList(activeSessions);
                 document.getElementById('activeCount').textContent = activeSessions.length;
 
-                if (document.getElementById('pilots-tab').classList.contains('active')) {
-                    renderAllPilots();
-                }
                 if (document.getElementById('airframes-tab').classList.contains('active')) {
                     renderAllAirframes();
                 }
@@ -1288,11 +1508,14 @@
             }
         }
 
+        let activationsDailyChart = null;
+        let activationsMonthlyChart = null;
+
         async function fetchAllPilots() {
             try {
-                // Fetch sessions where activation_occurred is true (unique pilot activations)
+                // Fetch sessions where activation_occurred is true
                 const response = await fetch(
-                    `${SUPABASE_URL}/rest/v1/flight_sessions?activation_occurred=eq.true&select=session_id,atc_id,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude,start_icao,current_icao`,
+                    `${SUPABASE_URL}/rest/v1/flight_sessions?activation_occurred=eq.true&select=start_time`,
                     {
                         headers: {
                             'apikey': SUPABASE_KEY,
@@ -1303,103 +1526,198 @@
 
                 if (!response.ok) throw new Error('Failed to fetch activations');
                 
-                const sessions = await response.json();
+                const activations = await response.json();
                 
-                // Each session with activation_occurred=true represents one unique pilot activation
-                allPilotsData = sessions.map(session => {
-                    let duration = 0;
-                    if (session.end_time && session.start_time) {
-                        duration = (new Date(session.end_time) - new Date(session.start_time)) / 60000;
-                        if (duration < 0 || duration > 1440) duration = 0;
+                // Calculate stats
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const weekAgo = new Date(today);
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                
+                let todayCount = 0;
+                let weekCount = 0;
+                let monthCount = 0;
+                
+                // Daily counts for last 7 days
+                const dailyCounts = {};
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    dailyCounts[date.toISOString().split('T')[0]] = 0;
+                }
+                
+                // Monthly counts
+                const monthlyCounts = {};
+                
+                activations.forEach(a => {
+                    const date = new Date(a.start_time);
+                    const dateStr = date.toISOString().split('T')[0];
+                    const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    
+                    // Today
+                    if (date >= today) {
+                        todayCount++;
                     }
                     
-                    const distance = calculateDistanceNm(
-                        session.start_latitude,
-                        session.start_longitude,
-                        session.current_latitude,
-                        session.current_longitude
-                    );
+                    // This week
+                    if (date >= weekAgo) {
+                        weekCount++;
+                    }
                     
-                    return {
-                        session_id: session.session_id,
-                        atc_id: session.atc_id || 'Unknown',
-                        start_time: new Date(session.start_time),
-                        duration: duration,
-                        distance: (distance > 0 && distance < 15000) ? distance : 0,
-                        start_icao: session.start_icao || 'N/A',
-                        current_icao: session.current_icao || 'N/A'
-                    };
+                    // This month
+                    if (date >= monthStart) {
+                        monthCount++;
+                    }
+                    
+                    // Daily chart data
+                    if (dailyCounts.hasOwnProperty(dateStr)) {
+                        dailyCounts[dateStr]++;
+                    }
+                    
+                    // Monthly chart data
+                    if (!monthlyCounts[monthStr]) {
+                        monthlyCounts[monthStr] = 0;
+                    }
+                    monthlyCounts[monthStr]++;
                 });
                 
-                document.getElementById('totalPilotsCount').textContent = allPilotsData.length;
-                renderAllPilots();
+                // Update stats
+                document.getElementById('totalActivations').textContent = activations.length;
+                document.getElementById('activationsToday').textContent = todayCount;
+                document.getElementById('activationsThisWeek').textContent = weekCount;
+                document.getElementById('activationsThisMonth').textContent = monthCount;
+                
+                // Build daily chart
+                const dailyLabels = Object.keys(dailyCounts).map(d => {
+                    const date = new Date(d);
+                    return date.toLocaleDateString('en-US', { weekday: 'short' });
+                });
+                const dailyData = Object.values(dailyCounts);
+                
+                if (activationsDailyChart) {
+                    activationsDailyChart.data.labels = dailyLabels;
+                    activationsDailyChart.data.datasets[0].data = dailyData;
+                    activationsDailyChart.update();
+                } else {
+                    const ctx = document.getElementById('activationsDailyChart').getContext('2d');
+                    const gradient = ctx.createLinearGradient(0, 0, 0, 180);
+                    gradient.addColorStop(0, 'rgba(48, 209, 88, 0.4)');
+                    gradient.addColorStop(1, 'rgba(48, 209, 88, 0.05)');
+                    
+                    activationsDailyChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: dailyLabels,
+                            datasets: [{
+                                label: 'Activations',
+                                data: dailyData,
+                                backgroundColor: gradient,
+                                borderColor: 'rgba(48, 209, 88, 0.6)',
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                borderSkipped: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(28, 28, 30, 0.95)',
+                                    titleColor: '#fff',
+                                    bodyColor: 'rgba(255, 255, 255, 0.7)',
+                                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    padding: 12
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1, font: { size: 11 } },
+                                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                                },
+                                x: {
+                                    ticks: { font: { size: 10 } },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Build monthly chart - get last 6 months
+                const monthlyLabels = [];
+                const monthlyData = [];
+                for (let i = 5; i >= 0; i--) {
+                    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    monthlyLabels.push(date.toLocaleDateString('en-US', { month: 'short' }));
+                    monthlyData.push(monthlyCounts[monthStr] || 0);
+                }
+                
+                if (activationsMonthlyChart) {
+                    activationsMonthlyChart.data.labels = monthlyLabels;
+                    activationsMonthlyChart.data.datasets[0].data = monthlyData;
+                    activationsMonthlyChart.update();
+                } else {
+                    const ctx = document.getElementById('activationsMonthlyChart').getContext('2d');
+                    
+                    activationsMonthlyChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: monthlyLabels,
+                            datasets: [{
+                                label: 'Activations',
+                                data: monthlyData,
+                                backgroundColor: 'transparent',
+                                borderColor: 'rgba(48, 209, 88, 0.9)',
+                                borderWidth: 2,
+                                fill: false,
+                                tension: 0.4,
+                                pointBackgroundColor: 'rgba(48, 209, 88, 1)',
+                                pointBorderColor: 'rgba(48, 209, 88, 1)',
+                                pointBorderWidth: 0,
+                                pointRadius: 2,
+                                pointHoverRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(28, 28, 30, 0.95)',
+                                    titleColor: '#fff',
+                                    bodyColor: 'rgba(255, 255, 255, 0.7)',
+                                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    padding: 12
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { stepSize: 1, font: { size: 11 } },
+                                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                                },
+                                x: {
+                                    ticks: { font: { size: 10 } },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
 
             } catch (error) {
                 console.error('Error fetching activations:', error);
-                document.getElementById('allPilotsList').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-text">Failed to load activations</div>
-                    </div>
-                `;
             }
-        }
-
-        function renderAllPilots() {
-            const listEl = document.getElementById('allPilotsList');
-            
-            if (allPilotsData.length === 0) {
-                listEl.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">
-                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                        </div>
-                        <div class="empty-state-text">No activations found</div>
-                    </div>
-                `;
-                return;
-            }
-
-            const sortedActivations = [...allPilotsData].sort((a, b) => {
-                switch (currentSort) {
-                    case 'recent': return b.start_time - a.start_time;
-                    case 'oldest': return a.start_time - b.start_time;
-                    default: return b.start_time - a.start_time;
-                }
-            });
-
-            listEl.innerHTML = sortedActivations.map((activation, index) => {
-                const timeStr = formatRelativeTime(activation.start_time);
-
-                return `
-                    <div class="all-pilot-card">
-                        <div class="all-pilot-top">
-                            <div class="pilot-rank ${index < 3 ? 'top-3' : ''}">${index + 1}</div>
-                            <div class="all-pilot-info">
-                                <div class="all-pilot-name">${activation.atc_id}</div>
-                                <div class="all-pilot-meta">${activation.start_icao} → ${activation.current_icao} · ${timeStr}</div>
-                            </div>
-                        </div>
-                        <div class="all-pilot-stats">
-                            <div class="all-pilot-stat">
-                                <div class="all-pilot-stat-value">${formatDuration(activation.duration)}</div>
-                                <div class="all-pilot-stat-label">Duration</div>
-                            </div>
-                            <div class="all-pilot-stat">
-                                <div class="all-pilot-stat-value">${activation.distance > 0 ? Math.round(activation.distance).toLocaleString() : '--'}</div>
-                                <div class="all-pilot-stat-label">NM Flown</div>
-                            </div>
-                            <div class="all-pilot-stat">
-                                <div class="all-pilot-stat-value">${activation.start_icao}</div>
-                                <div class="all-pilot-stat-label">Departed</div>
-                            </div>
-                            <div class="all-pilot-stat">
-                                <div class="all-pilot-stat-value">${activation.current_icao}</div>
-                                <div class="all-pilot-stat-label">Arrived</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
         }
 
         function formatRelativeTime(date) {
@@ -1419,7 +1737,7 @@
         async function fetchAllAirframes() {
             try {
                 const response = await fetch(
-                    `${SUPABASE_URL}/rest/v1/flight_sessions?select=session_id,atc_id,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude,activation_occurred`,
+                    `${SUPABASE_URL}/rest/v1/flight_sessions?select=session_id,atc_id,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude`,
                     {
                         headers: {
                             'apikey': SUPABASE_KEY,
@@ -1443,7 +1761,6 @@
                             totalMinutes: 0,
                             totalNm: 0,
                             lastFlight: null,
-                            activations: 0,
                             uniqueSessionIds: new Set()
                         };
                     }
@@ -1452,11 +1769,6 @@
                     if (!airframesMap[registration].uniqueSessionIds.has(session.session_id)) {
                         airframesMap[registration].uniqueSessionIds.add(session.session_id);
                         airframesMap[registration].flights++;
-                        
-                        // Count activations (unique pilots)
-                        if (session.activation_occurred) {
-                            airframesMap[registration].activations++;
-                        }
                         
                         if (session.end_time && session.start_time) {
                             const duration = (new Date(session.end_time) - new Date(session.start_time)) / 60000;
@@ -1542,7 +1854,7 @@
                             <div class="pilot-rank ${index < 3 ? 'top-3' : ''}">${index + 1}</div>
                             <div class="all-pilot-info">
                                 <div class="all-pilot-name">${airframe.registration}</div>
-                                <div class="all-pilot-meta">${airframe.activations} activation${airframe.activations !== 1 ? 's' : ''} - Last active ${lastFlightStr}</div>
+                                <div class="all-pilot-meta">Last active ${lastFlightStr}</div>
                             </div>
                             ${isOnline ? `
                                 <div class="pilot-online-badge">
@@ -1594,6 +1906,9 @@
                 const sessions = await response.json();
                 const routesMap = {};
                 
+                // For daily chart - collect qualifying route sessions
+                const qualifyingRouteSessions = [];
+                
                 sessions.forEach(session => {
                     // Filter: end speed must be less than 10 kts (landed properly)
                     if (session.current_speed === null || session.current_speed >= 10) return;
@@ -1603,6 +1918,9 @@
                     
                     // ICAOs must be different (actual flight, not just parking)
                     if (session.start_icao === session.current_icao) return;
+                    
+                    // This session qualifies as a route
+                    qualifyingRouteSessions.push(session);
                     
                     // Calculate distance
                     const distance = calculateDistanceNm(
@@ -1657,6 +1975,42 @@
                 document.getElementById('routeTotalHours').textContent = Math.round(routeTotalMinutes / 60).toLocaleString();
                 document.getElementById('routeTotalNm').textContent = Math.round(routeTotalNm).toLocaleString();
                 document.getElementById('routeAvgDuration').textContent = routeTotalFlights > 0 ? formatDuration(routeTotalMinutes / routeTotalFlights) : '0m';
+                
+                // Update weekly routes chart
+                const labels = [];
+                const routeCounts = [];
+                const avgDurations = [];
+                const today = new Date();
+                
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const dateStr = date.toLocaleDateString('en-US', { weekday: 'short' });
+                    labels.push(dateStr);
+                    const fullDate = date.toLocaleDateString();
+                    
+                    const daySessions = qualifyingRouteSessions.filter(s => new Date(s.start_time).toLocaleDateString() === fullDate);
+                    routeCounts.push(daySessions.length);
+                    
+                    // Calculate average duration for the day
+                    let totalMinutes = 0;
+                    let completedFlights = 0;
+                    daySessions.forEach(s => {
+                        if (s.end_time && s.start_time) {
+                            const duration = (new Date(s.end_time) - new Date(s.start_time)) / 60000;
+                            if (duration > 0 && duration < 1440) {
+                                totalMinutes += duration;
+                                completedFlights++;
+                            }
+                        }
+                    });
+                    avgDurations.push(completedFlights > 0 ? totalMinutes / completedFlights : null);
+                }
+                
+                routesDailyChart.data.labels = labels;
+                routesDailyChart.data.datasets[0].data = routeCounts;
+                routesDailyChart.data.datasets[1].data = avgDurations;
+                routesDailyChart.update();
                 
                 renderAllRoutes();
 
@@ -1741,7 +2095,7 @@
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
                 
                 const response = await fetch(
-                    `${SUPABASE_URL}/rest/v1/flight_sessions?start_time=gte.${sevenDaysAgo.toISOString()}&select=session_id,start_time`,
+                    `${SUPABASE_URL}/rest/v1/flight_sessions?start_time=gte.${sevenDaysAgo.toISOString()}&select=session_id,start_time,end_time,is_active`,
                     {
                         headers: {
                             'apikey': SUPABASE_KEY,
@@ -1753,20 +2107,46 @@
                 if (!response.ok) throw new Error('Failed to fetch daily stats');
                 
                 const sessions = await response.json();
+                const now = new Date();
                 
                 const labels = [];
-                const data = [];
+                const flightCounts = [];
+                const avgDurations = [];
+                
                 for (let i = 6; i >= 0; i--) {
                     const date = new Date();
                     date.setDate(date.getDate() - i);
                     const dateStr = date.toLocaleDateString('en-US', { weekday: 'short' });
                     labels.push(dateStr);
                     const fullDate = date.toLocaleDateString();
-                    data.push(sessions.filter(s => new Date(s.start_time).toLocaleDateString() === fullDate).length);
+                    
+                    const daySessions = sessions.filter(s => new Date(s.start_time).toLocaleDateString() === fullDate);
+                    flightCounts.push(daySessions.length);
+                    
+                    // Calculate average duration for the day (including active flights)
+                    let totalMinutes = 0;
+                    let flightCount = 0;
+                    daySessions.forEach(s => {
+                        let duration;
+                        if (s.end_time) {
+                            // Completed flight
+                            duration = (new Date(s.end_time) - new Date(s.start_time)) / 60000;
+                        } else if (s.is_active) {
+                            // Active flight - calculate duration from start to now
+                            duration = (now - new Date(s.start_time)) / 60000;
+                        }
+                        
+                        if (duration && duration > 0 && duration < 1440) {
+                            totalMinutes += duration;
+                            flightCount++;
+                        }
+                    });
+                    avgDurations.push(flightCount > 0 ? totalMinutes / flightCount : null);
                 }
 
                 dailyChart.data.labels = labels;
-                dailyChart.data.datasets[0].data = data;
+                dailyChart.data.datasets[0].data = flightCounts;
+                dailyChart.data.datasets[1].data = avgDurations;
                 dailyChart.update();
 
                 const today = new Date().toLocaleDateString();
