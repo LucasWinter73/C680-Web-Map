@@ -1329,13 +1329,10 @@
                             font: { size: 11 },
                             color: 'rgba(48, 209, 88, 0.7)',
                             callback: function(value) {
-                                const hrs = Math.floor(value / 60);
-                                const mins = Math.round(value % 60);
-                                if (value === 0) return '0m';
-                                if (hrs === 0) return `${mins}m`;
-                                if (mins === 0) return `${hrs}h`;
-                                return `${hrs}h`;
-                            }
+                                if (value === 0) return '0';
+                                return (value / 60) + 'h';
+                            },
+                            stepSize: 60
                         },
                         grid: { 
                             drawOnChartArea: false
@@ -1448,13 +1445,10 @@
                             font: { size: 11 },
                             color: 'rgba(48, 209, 88, 0.7)',
                             callback: function(value) {
-                                const hrs = Math.floor(value / 60);
-                                const mins = Math.round(value % 60);
-                                if (value === 0) return '0m';
-                                if (hrs === 0) return `${mins}m`;
-                                if (mins === 0) return `${hrs}h`;
-                                return `${hrs}h`;
-                            }
+                                if (value === 0) return '0';
+                                return (value / 60) + 'h';
+                            },
+                            stepSize: 60
                         },
                         grid: { 
                             drawOnChartArea: false
@@ -2004,7 +1998,7 @@
                             }
                         }
                     });
-                    avgDurations.push(completedFlights > 0 ? totalMinutes / completedFlights : null);
+                    avgDurations.push(completedFlights > 0 ? totalMinutes / completedFlights : 0);
                 }
                 
                 routesDailyChart.data.labels = labels;
@@ -2141,7 +2135,7 @@
                             flightCount++;
                         }
                     });
-                    avgDurations.push(flightCount > 0 ? totalMinutes / flightCount : null);
+                    avgDurations.push(flightCount > 0 ? totalMinutes / flightCount : 0);
                 }
 
                 dailyChart.data.labels = labels;
