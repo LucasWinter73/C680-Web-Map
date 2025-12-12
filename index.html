@@ -743,10 +743,12 @@
             border-radius: 14px;
             padding: 1rem 1.25rem;
             transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         .route-card:hover {
             background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-1px);
         }
 
         .route-top {
@@ -1357,6 +1359,8 @@
         }).addTo(map);
 
         const planeMarkers = {};
+        let routeLayer = null; // Layer group for route lines
+        let airportCoordinates = {}; // Store calculated airport coordinates
 
         // Haversine formula - distance in nautical miles
         function calculateDistanceNm(lat1, lon1, lat2, lon2) {
@@ -1396,8 +1400,16 @@
                 if (tab.dataset.tab === 'airframes' && allAirframesData.length === 0) {
                     fetchAllAirframes();
                 }
-                if (tab.dataset.tab === 'routes' && allRoutesData.length === 0) {
-                    fetchAllRoutes();
+                if (tab.dataset.tab === 'routes') {
+                    if (allRoutesData.length === 0) {
+                        fetchAllRoutes();
+                    } else {
+                        // Routes data already loaded, just show the lines
+                        drawRoutesOnMap();
+                    }
+                } else {
+                    // Clear route lines when switching away from routes tab
+                    clearRouteLines();
                 }
             });
         });
@@ -2113,6 +2125,9 @@
                 const sessions = await response.json();
                 const routesMap = {};
                 
+                // For calculating airport coordinates - collect all coordinates per ICAO
+                const airportCoordCollector = {};
+                
                 // For daily chart - collect qualifying route sessions
                 const qualifyingRouteSessions = [];
                 
@@ -2126,6 +2141,23 @@
                     // ICAOs must be different (actual flight, not just parking)
                     if (session.start_icao === session.current_icao) return;
                     
+                    // Collect coordinates for airport position calculation
+                    if (session.start_latitude && session.start_longitude) {
+                        if (!airportCoordCollector[session.start_icao]) {
+                            airportCoordCollector[session.start_icao] = { lats: [], lons: [] };
+                        }
+                        airportCoordCollector[session.start_icao].lats.push(session.start_latitude);
+                        airportCoordCollector[session.start_icao].lons.push(session.start_longitude);
+                    }
+                    
+                    if (session.current_latitude && session.current_longitude) {
+                        if (!airportCoordCollector[session.current_icao]) {
+                            airportCoordCollector[session.current_icao] = { lats: [], lons: [] };
+                        }
+                        airportCoordCollector[session.current_icao].lats.push(session.current_latitude);
+                        airportCoordCollector[session.current_icao].lons.push(session.current_longitude);
+                    }
+                    
                     // This session qualifies as a route
                     qualifyingRouteSessions.push(session);
                     
@@ -2135,10 +2167,15 @@
                         session.current_latitude, session.current_longitude
                     );
                     
-                    const routeKey = `${session.start_icao}-${session.current_icao}`;
+                    // Create bidirectional route key (sorted alphabetically so A-B and B-A are the same)
+                    const sortedIcaos = [session.start_icao, session.current_icao].sort();
+                    const routeKey = `${sortedIcaos[0]}-${sortedIcaos[1]}`;
                     
                     if (!routesMap[routeKey]) {
                         routesMap[routeKey] = {
+                            airport1: sortedIcaos[0],
+                            airport2: sortedIcaos[1],
+                            // Keep original origin/destination for display (most recent direction)
                             origin: session.start_icao,
                             destination: session.current_icao,
                             routeKey,
@@ -2161,7 +2198,19 @@
                     const flightTime = new Date(session.start_time);
                     if (!routesMap[routeKey].lastFlight || flightTime > routesMap[routeKey].lastFlight) {
                         routesMap[routeKey].lastFlight = flightTime;
+                        // Update display direction to most recent flight
+                        routesMap[routeKey].origin = session.start_icao;
+                        routesMap[routeKey].destination = session.current_icao;
                     }
+                });
+                
+                // Calculate mean coordinates for each airport
+                airportCoordinates = {};
+                Object.keys(airportCoordCollector).forEach(icao => {
+                    const coords = airportCoordCollector[icao];
+                    const meanLat = coords.lats.reduce((a, b) => a + b, 0) / coords.lats.length;
+                    const meanLon = coords.lons.reduce((a, b) => a + b, 0) / coords.lons.length;
+                    airportCoordinates[icao] = { lat: meanLat, lon: meanLon };
                 });
 
                 allRoutesData = Object.values(routesMap);
@@ -2220,6 +2269,7 @@
                 routesDailyChart.update();
                 
                 renderAllRoutes();
+                drawRoutesOnMap();
 
             } catch (error) {
                 console.error('Error fetching routes:', error);
@@ -2260,17 +2310,17 @@
                 const lastFlightStr = route.lastFlight ? formatRelativeTime(route.lastFlight) : 'Never';
 
                 return `
-                    <div class="route-card">
+                    <div class="route-card" onclick="focusRoute('${route.airport1}', '${route.airport2}')">
                         <div class="route-top">
                             <div class="pilot-rank ${index < 3 ? 'top-3' : ''}">${index + 1}</div>
                             <div class="route-visual">
-                                <div class="route-airport">${route.origin}</div>
+                                <div class="route-airport">${route.airport1}</div>
                                 <div class="route-line"></div>
                                 <div class="route-arrow">
-                                    <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8-8-8z"/></svg>
+                                    <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
                                 </div>
                                 <div class="route-line"></div>
-                                <div class="route-airport">${route.destination}</div>
+                                <div class="route-airport">${route.airport2}</div>
                             </div>
                         </div>
                         <div class="all-pilot-stats">
@@ -2294,6 +2344,249 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // Calculate great circle path points between two coordinates
+        function getGreatCirclePath(lat1, lon1, lat2, lon2, numPoints = 50) {
+            const points = [];
+            const toRad = deg => deg * Math.PI / 180;
+            const toDeg = rad => rad * 180 / Math.PI;
+            
+            const phi1 = toRad(lat1);
+            const phi2 = toRad(lat2);
+            const lambda1 = toRad(lon1);
+            const lambda2 = toRad(lon2);
+            
+            // Calculate the angular distance
+            const d = 2 * Math.asin(Math.sqrt(
+                Math.pow(Math.sin((phi2 - phi1) / 2), 2) +
+                Math.cos(phi1) * Math.cos(phi2) * Math.pow(Math.sin((lambda2 - lambda1) / 2), 2)
+            ));
+            
+            if (d === 0) return [[lat1, lon1], [lat2, lon2]];
+            
+            for (let i = 0; i <= numPoints; i++) {
+                const f = i / numPoints;
+                const A = Math.sin((1 - f) * d) / Math.sin(d);
+                const B = Math.sin(f * d) / Math.sin(d);
+                
+                const x = A * Math.cos(phi1) * Math.cos(lambda1) + B * Math.cos(phi2) * Math.cos(lambda2);
+                const y = A * Math.cos(phi1) * Math.sin(lambda1) + B * Math.cos(phi2) * Math.sin(lambda2);
+                const z = A * Math.sin(phi1) + B * Math.sin(phi2);
+                
+                const lat = toDeg(Math.atan2(z, Math.sqrt(x * x + y * y)));
+                const lon = toDeg(Math.atan2(y, x));
+                
+                points.push([lat, lon]);
+            }
+            
+            return points;
+        }
+        
+        // Split path at antimeridian to avoid wrong-way lines
+        function splitPathAtAntimeridian(points) {
+            const segments = [];
+            let currentSegment = [points[0]];
+            
+            for (let i = 1; i < points.length; i++) {
+                const prevLon = points[i - 1][1];
+                const currLon = points[i][1];
+                
+                // Check if we crossed the antimeridian (longitude jump > 180)
+                if (Math.abs(currLon - prevLon) > 180) {
+                    // End current segment and start new one
+                    segments.push(currentSegment);
+                    currentSegment = [points[i]];
+                } else {
+                    currentSegment.push(points[i]);
+                }
+            }
+            
+            segments.push(currentSegment);
+            return segments;
+        }
+
+        function drawRoutesOnMap() {
+            // Clear existing route lines
+            if (routeLayer) {
+                map.removeLayer(routeLayer);
+            }
+            
+            routeLayer = L.layerGroup();
+            
+            if (allRoutesData.length === 0) return;
+            
+            // Find max flights for scaling line thickness
+            const maxFlights = Math.max(...allRoutesData.map(r => r.flights));
+            
+            allRoutesData.forEach(route => {
+                const coord1 = airportCoordinates[route.airport1];
+                const coord2 = airportCoordinates[route.airport2];
+                
+                if (!coord1 || !coord2) return;
+                
+                // Calculate line weight based on flight count (min 0.5, max 4)
+                const weight = Math.max(0.5, Math.min(4, 0.5 + (route.flights / maxFlights) * 3.5));
+                
+                // Calculate great circle path
+                const pathPoints = getGreatCirclePath(coord1.lat, coord1.lon, coord2.lat, coord2.lon);
+                
+                // Split at antimeridian to avoid lines going the wrong way
+                const segments = splitPathAtAntimeridian(pathPoints);
+                
+                // Create polylines for each segment
+                segments.forEach(segment => {
+                    if (segment.length < 2) return;
+                    
+                    const polyline = L.polyline(segment, {
+                        color: '#ffffff',
+                        weight: weight,
+                        opacity: 0.15 + (route.flights / maxFlights) * 0.25, // More transparent: 0.15 to 0.4
+                        smoothFactor: 1
+                    });
+                    
+                    // Add popup with route info
+                    const avgDuration = route.flights > 0 ? formatDuration(route.totalMinutes / route.flights) : '0m';
+                    const popupContent = `
+                        <div class="popup-content">
+                            <h3>${route.airport1} ↔ ${route.airport2}</h3>
+                            <div class="popup-callsign">Bidirectional Route</div>
+                            <div class="popup-grid">
+                                <div class="popup-stat">
+                                    <div class="popup-stat-value">${route.flights}</div>
+                                    <div class="popup-stat-label">Total Flights</div>
+                                </div>
+                                <div class="popup-stat">
+                                    <div class="popup-stat-value">${Math.round(route.distance).toLocaleString()}</div>
+                                    <div class="popup-stat-label">Distance (NM)</div>
+                                </div>
+                                <div class="popup-stat">
+                                    <div class="popup-stat-value">${avgDuration}</div>
+                                    <div class="popup-stat-label">Avg Duration</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    polyline.bindPopup(popupContent);
+                    
+                    // Show popup on hover (if no popup is currently open)
+                    polyline.on('mouseover', function(e) {
+                        if (!map._popup || !map._popup.isOpen()) {
+                            this.openPopup(e.latlng);
+                            this._hoverOpen = true;
+                        }
+                    });
+                    
+                    // Hide popup on mouseout (only if it was opened by hover, not click)
+                    polyline.on('mouseout', function() {
+                        if (this._hoverOpen) {
+                            this.closePopup();
+                            this._hoverOpen = false;
+                        }
+                    });
+                    
+                    // On click, mark as not hover-opened so it stays
+                    polyline.on('click', function() {
+                        this._hoverOpen = false;
+                    });
+                    
+                    routeLayer.addLayer(polyline);
+                });
+            });
+            
+            // Add airport markers
+            Object.keys(airportCoordinates).forEach(icao => {
+                const coord = airportCoordinates[icao];
+                
+                // Count total flights for this airport
+                let totalFlights = 0;
+                allRoutesData.forEach(route => {
+                    if (route.airport1 === icao || route.airport2 === icao) {
+                        totalFlights += route.flights;
+                    }
+                });
+                
+                // Size marker based on flight count
+                const radius = Math.max(4, Math.min(12, 4 + Math.log2(totalFlights + 1) * 2));
+                
+                const marker = L.circleMarker([coord.lat, coord.lon], {
+                    radius: radius,
+                    fillColor: '#ffffff',
+                    color: '#000000',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                });
+                
+                const popupContent = `
+                    <div class="popup-content">
+                        <h3>${icao}</h3>
+                        <div class="popup-callsign">Airport</div>
+                        <div class="popup-grid">
+                            <div class="popup-stat">
+                                <div class="popup-stat-value">${totalFlights}</div>
+                                <div class="popup-stat-label">Total Flights</div>
+                            </div>
+                            <div class="popup-stat">
+                                <div class="popup-stat-value">${coord.lat.toFixed(2)}°</div>
+                                <div class="popup-stat-label">Latitude</div>
+                            </div>
+                            <div class="popup-stat">
+                                <div class="popup-stat-value">${coord.lon.toFixed(2)}°</div>
+                                <div class="popup-stat-label">Longitude</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                
+                // Show popup on hover (if no popup is currently open)
+                marker.on('mouseover', function(e) {
+                    if (!map._popup || !map._popup.isOpen()) {
+                        this.openPopup();
+                        this._hoverOpen = true;
+                    }
+                });
+                
+                // Hide popup on mouseout (only if it was opened by hover, not click)
+                marker.on('mouseout', function() {
+                    if (this._hoverOpen) {
+                        this.closePopup();
+                        this._hoverOpen = false;
+                    }
+                });
+                
+                // On click, mark as not hover-opened so it stays
+                marker.on('click', function() {
+                    this._hoverOpen = false;
+                });
+                
+                routeLayer.addLayer(marker);
+            });
+            
+            routeLayer.addTo(map);
+        }
+
+        function clearRouteLines() {
+            if (routeLayer) {
+                map.removeLayer(routeLayer);
+                routeLayer = null;
+            }
+        }
+
+        function focusRoute(airport1, airport2) {
+            const coord1 = airportCoordinates[airport1];
+            const coord2 = airportCoordinates[airport2];
+            
+            if (coord1 && coord2) {
+                const bounds = L.latLngBounds([
+                    [coord1.lat, coord1.lon],
+                    [coord2.lat, coord2.lon]
+                ]);
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
         }
 
         async function fetchDailyStats() {
