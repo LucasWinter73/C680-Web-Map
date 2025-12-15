@@ -2141,6 +2141,23 @@
                     // ICAOs must be different (actual flight, not just parking)
                     if (session.start_icao === session.current_icao) return;
                     
+                    // Calculate distance
+                    const distance = calculateDistanceNm(
+                        session.start_latitude, session.start_longitude,
+                        session.current_latitude, session.current_longitude
+                    );
+                    
+                    // Filter: route must be longer than 3 nautical miles
+                    if (distance <= 3) return;
+                    
+                    // Filter: flight must have lasted at least 5 minutes
+                    if (session.end_time && session.start_time) {
+                        const durationMinutes = (new Date(session.end_time) - new Date(session.start_time)) / 60000;
+                        if (durationMinutes < 5) return;
+                    } else {
+                        return; // No valid duration, skip
+                    }
+                    
                     // Collect coordinates for airport position calculation
                     if (session.start_latitude && session.start_longitude) {
                         if (!airportCoordCollector[session.start_icao]) {
@@ -2160,12 +2177,6 @@
                     
                     // This session qualifies as a route
                     qualifyingRouteSessions.push(session);
-                    
-                    // Calculate distance
-                    const distance = calculateDistanceNm(
-                        session.start_latitude, session.start_longitude,
-                        session.current_latitude, session.current_longitude
-                    );
                     
                     // Create bidirectional route key (sorted alphabetically so A-B and B-A are the same)
                     const sortedIcaos = [session.start_icao, session.current_icao].sort();
