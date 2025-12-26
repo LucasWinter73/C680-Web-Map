@@ -1087,9 +1087,16 @@
                 </div>
 
                 <div class="section">
-                    <div class="section-title">Weekly Activity</div>
+                    <div class="section-title">Daily Activity (Last 7 Days)</div>
                     <div class="chart-wrapper">
                         <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Weekly Activity (Last 7 Weeks)</div>
+                    <div class="chart-wrapper">
+                        <canvas id="weeklyChart"></canvas>
                     </div>
                 </div>
 
@@ -1216,9 +1223,15 @@
                     </div>
                 </div>
                 <div class="section">
-                    <div class="section-title">Weekly Route Activity</div>
+                    <div class="section-title">Daily Route Activity (Last 7 Days)</div>
                     <div class="chart-wrapper">
                         <canvas id="routesDailyChart"></canvas>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="section-title">Weekly Route Activity (Last 7 Weeks)</div>
+                    <div class="chart-wrapper">
+                        <canvas id="routesWeeklyChart"></canvas>
                     </div>
                 </div>
                 <div class="pilots-header">
@@ -1590,6 +1603,125 @@
             }
         });
 
+        // Weekly chart for overview (last 7 weeks)
+        const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+        const weeklyGradient = weeklyCtx.createLinearGradient(0, 0, 0, 180);
+        weeklyGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        weeklyGradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+
+        const weeklyChart = new Chart(weeklyCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Flights',
+                        data: [],
+                        backgroundColor: weeklyGradient,
+                        borderColor: 'rgba(255, 255, 255, 0.4)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        yAxisID: 'y',
+                        order: 2
+                    },
+                    {
+                        label: 'Avg Duration',
+                        data: [],
+                        type: 'line',
+                        borderColor: 'rgba(48, 209, 88, 0.9)',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(48, 209, 88, 1)',
+                        pointBorderColor: 'rgba(48, 209, 88, 1)',
+                        pointBorderWidth: 0,
+                        pointRadius: 2,
+                        pointHoverRadius: 4,
+                        yAxisID: 'y1',
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(28, 28, 30, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: 'rgba(255, 255, 255, 0.7)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.label === 'Avg Duration') {
+                                    const mins = context.raw;
+                                    if (!mins) return 'Avg Duration: --';
+                                    const hrs = Math.floor(mins / 60);
+                                    const m = Math.round(mins % 60);
+                                    if (hrs === 0) return `Avg Duration: ${m}m`;
+                                    if (m === 0) return `Avg Duration: ${hrs}h`;
+                                    return `Avg Duration: ${hrs}h ${m}m`;
+                                }
+                                return `Flights: ${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        ticks: { 
+                            stepSize: 1, 
+                            font: { size: 11 },
+                            color: 'rgba(255, 255, 255, 0.5)'
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        title: {
+                            display: false
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        ticks: { 
+                            font: { size: 11 },
+                            color: 'rgba(48, 209, 88, 0.7)',
+                            callback: function(value) {
+                                if (value === 0) return '0';
+                                return (value / 60) + 'h';
+                            },
+                            stepSize: 60
+                        },
+                        grid: { 
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: false
+                        }
+                    },
+                    x: {
+                        ticks: { font: { size: 10 } },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
         // Routes daily chart
         const routesDailyCtx = document.getElementById('routesDailyChart').getContext('2d');
         const routesGradient = routesDailyCtx.createLinearGradient(0, 0, 0, 180);
@@ -1605,6 +1737,119 @@
                         label: 'Routes',
                         data: [],
                         backgroundColor: routesGradient,
+                        borderColor: 'rgba(255, 255, 255, 0.4)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        yAxisID: 'y',
+                        order: 2
+                    },
+                    {
+                        label: 'Avg Duration',
+                        data: [],
+                        type: 'line',
+                        borderColor: 'rgba(48, 209, 88, 0.9)',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointBackgroundColor: 'rgba(48, 209, 88, 1)',
+                        pointBorderColor: 'rgba(48, 209, 88, 1)',
+                        pointBorderWidth: 0,
+                        pointRadius: 2,
+                        pointHoverRadius: 4,
+                        yAxisID: 'y1',
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(28, 28, 30, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: 'rgba(255, 255, 255, 0.7)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.label === 'Avg Duration') {
+                                    const mins = context.raw;
+                                    if (!mins) return 'Avg Duration: --';
+                                    const hrs = Math.floor(mins / 60);
+                                    const m = Math.round(mins % 60);
+                                    if (hrs === 0) return `Avg Duration: ${m}m`;
+                                    if (m === 0) return `Avg Duration: ${hrs}h`;
+                                    return `Avg Duration: ${hrs}h ${m}m`;
+                                }
+                                return `Routes: ${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        ticks: { 
+                            stepSize: 1, 
+                            font: { size: 11 },
+                            color: 'rgba(255, 255, 255, 0.5)'
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        ticks: { 
+                            font: { size: 11 },
+                            color: 'rgba(48, 209, 88, 0.7)',
+                            callback: function(value) {
+                                if (value === 0) return '0';
+                                return (value / 60) + 'h';
+                            },
+                            stepSize: 60
+                        },
+                        grid: { 
+                            drawOnChartArea: false
+                        }
+                    },
+                    x: {
+                        ticks: { font: { size: 10 } },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // Routes weekly chart (last 7 weeks)
+        const routesWeeklyCtx = document.getElementById('routesWeeklyChart').getContext('2d');
+        const routesWeeklyGradient = routesWeeklyCtx.createLinearGradient(0, 0, 0, 180);
+        routesWeeklyGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        routesWeeklyGradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+
+        const routesWeeklyChart = new Chart(routesWeeklyCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Routes',
+                        data: [],
+                        backgroundColor: routesWeeklyGradient,
                         borderColor: 'rgba(255, 255, 255, 0.4)',
                         borderWidth: 1,
                         borderRadius: 6,
@@ -1769,7 +2014,9 @@
                 for (let i = 6; i >= 0; i--) {
                     const date = new Date(today);
                     date.setDate(date.getDate() - i);
-                    dailyCounts[date.toISOString().split('T')[0]] = 0;
+                    // Use local date string to avoid timezone issues
+                    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    dailyCounts[dateStr] = 0;
                 }
                 
                 // Monthly counts
@@ -1777,7 +2024,8 @@
                 
                 activations.forEach(a => {
                     const date = new Date(a.start_time);
-                    const dateStr = date.toISOString().split('T')[0];
+                    // Use local date string to avoid timezone issues
+                    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                     const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                     
                     // Today
@@ -1815,7 +2063,8 @@
                 
                 // Build daily chart
                 const dailyLabels = Object.keys(dailyCounts).map(d => {
-                    const date = new Date(d);
+                    const [year, month, day] = d.split('-').map(Number);
+                    const date = new Date(year, month - 1, day);
                     return date.toLocaleDateString('en-US', { weekday: 'short' });
                 });
                 const dailyData = Object.values(dailyCounts);
@@ -2279,6 +2528,50 @@
                 routesDailyChart.data.datasets[1].data = avgDurations;
                 routesDailyChart.update();
                 
+                // Update weekly routes chart (last 7 weeks)
+                const weeklyLabels = [];
+                const weeklyRouteCounts = [];
+                const weeklyAvgDurations = [];
+                
+                for (let i = 6; i >= 0; i--) {
+                    const weekEnd = new Date(today);
+                    weekEnd.setDate(weekEnd.getDate() - (i * 7));
+                    weekEnd.setHours(23, 59, 59, 999);
+                    
+                    const weekStart = new Date(weekEnd);
+                    weekStart.setDate(weekStart.getDate() - 6);
+                    weekStart.setHours(0, 0, 0, 0);
+                    
+                    // Format label as "Dec 9" (start of week)
+                    const labelStr = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    weeklyLabels.push(labelStr);
+                    
+                    const weekSessions = qualifyingRouteSessions.filter(s => {
+                        const sessionDate = new Date(s.start_time);
+                        return sessionDate >= weekStart && sessionDate <= weekEnd;
+                    });
+                    weeklyRouteCounts.push(weekSessions.length);
+                    
+                    // Calculate average duration for the week
+                    let weekTotalMinutes = 0;
+                    let weekCompletedFlights = 0;
+                    weekSessions.forEach(s => {
+                        if (s.end_time && s.start_time) {
+                            const duration = (new Date(s.end_time) - new Date(s.start_time)) / 60000;
+                            if (duration > 0 && duration < 1440) {
+                                weekTotalMinutes += duration;
+                                weekCompletedFlights++;
+                            }
+                        }
+                    });
+                    weeklyAvgDurations.push(weekCompletedFlights > 0 ? weekTotalMinutes / weekCompletedFlights : 0);
+                }
+                
+                routesWeeklyChart.data.labels = weeklyLabels;
+                routesWeeklyChart.data.datasets[0].data = weeklyRouteCounts;
+                routesWeeklyChart.data.datasets[1].data = weeklyAvgDurations;
+                routesWeeklyChart.update();
+                
                 renderAllRoutes();
                 drawRoutesOnMap();
 
@@ -2666,6 +2959,76 @@
             }
         }
 
+        async function fetchWeeklyStats() {
+            try {
+                const sevenWeeksAgo = new Date();
+                sevenWeeksAgo.setDate(sevenWeeksAgo.getDate() - 49); // 7 weeks * 7 days
+                
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/flight_sessions?start_time=gte.${sevenWeeksAgo.toISOString()}&select=session_id,start_time,end_time,is_active`,
+                    {
+                        headers: getAuthHeaders()
+                    }
+                );
+
+                if (!response.ok) throw new Error('Failed to fetch weekly stats');
+                
+                const sessions = await response.json();
+                const now = new Date();
+                
+                const labels = [];
+                const flightCounts = [];
+                const avgDurations = [];
+                
+                // Calculate week boundaries (weeks ending on current day of week)
+                for (let i = 6; i >= 0; i--) {
+                    const weekEnd = new Date();
+                    weekEnd.setDate(weekEnd.getDate() - (i * 7));
+                    weekEnd.setHours(23, 59, 59, 999);
+                    
+                    const weekStart = new Date(weekEnd);
+                    weekStart.setDate(weekStart.getDate() - 6);
+                    weekStart.setHours(0, 0, 0, 0);
+                    
+                    // Format label as "Dec 9" (start of week)
+                    const labelStr = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    labels.push(labelStr);
+                    
+                    const weekSessions = sessions.filter(s => {
+                        const sessionDate = new Date(s.start_time);
+                        return sessionDate >= weekStart && sessionDate <= weekEnd;
+                    });
+                    flightCounts.push(weekSessions.length);
+                    
+                    // Calculate average duration for the week
+                    let totalMinutes = 0;
+                    let flightCount = 0;
+                    weekSessions.forEach(s => {
+                        let duration;
+                        if (s.end_time) {
+                            duration = (new Date(s.end_time) - new Date(s.start_time)) / 60000;
+                        } else if (s.is_active) {
+                            duration = (now - new Date(s.start_time)) / 60000;
+                        }
+                        
+                        if (duration && duration > 0 && duration < 1440) {
+                            totalMinutes += duration;
+                            flightCount++;
+                        }
+                    });
+                    avgDurations.push(flightCount > 0 ? totalMinutes / flightCount : 0);
+                }
+
+                weeklyChart.data.labels = labels;
+                weeklyChart.data.datasets[0].data = flightCounts;
+                weeklyChart.data.datasets[1].data = avgDurations;
+                weeklyChart.update();
+
+            } catch (error) {
+                console.error('Error fetching weekly stats:', error);
+            }
+        }
+
         async function fetchTotalStats() {
             try {
                 const response = await fetch(
@@ -2829,11 +3192,13 @@
         // Initial fetch
         fetchActiveSessions();
         fetchDailyStats();
+        fetchWeeklyStats();
         fetchTotalStats();
 
         // Update intervals
         setInterval(fetchActiveSessions, 5000);
         setInterval(fetchDailyStats, 60000);
+        setInterval(fetchWeeklyStats, 60000);
         setInterval(fetchTotalStats, 60000);
         
         // Refresh pilots/airframes/routes data periodically if their tabs are active
