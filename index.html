@@ -1293,6 +1293,26 @@
 			};
 		}
 
+		// Paginated fetch to overcome Supabase's default 1000-row limit
+		async function fetchAllRows(url) {
+			const pageSize = 1000;
+			let offset = 0;
+			let allRows = [];
+			const separator = url.includes('?') ? '&' : '?';
+			while (true) {
+				const paginatedUrl = `${url}${separator}limit=${pageSize}&offset=${offset}`;
+				const response = await fetch(paginatedUrl, {
+					headers: getAuthHeaders()
+				});
+				if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
+				const rows = await response.json();
+				allRows = allRows.concat(rows);
+				if (rows.length < pageSize) break;
+				offset += pageSize;
+			}
+			return allRows;
+		}
+
 		// Check for existing session
 		async function checkSession() {
 			const savedToken = localStorage.getItem('supabase_token');
@@ -1987,16 +2007,9 @@
 		async function fetchAllPilots() {
 			try {
 				// Fetch sessions where activation_occurred is true
-				const response = await fetch(
-					`${SUPABASE_URL}/rest/v1/flight_sessions?activation_occurred=eq.true&select=start_time`,
-					{
-						headers: getAuthHeaders()
-					}
+				const activations = await fetchAllRows(
+					`${SUPABASE_URL}/rest/v1/flight_sessions?activation_occurred=eq.true&select=start_time`
 				);
-
-				if (!response.ok) throw new Error('Failed to fetch activations');
-				
-				const activations = await response.json();
 				
 				// Calculate stats
 				const now = new Date();
@@ -2210,16 +2223,9 @@
 
 		async function fetchAllAirframes() {
 			try {
-				const response = await fetch(
-					`${SUPABASE_URL}/rest/v1/flight_sessions?select=session_id,atc_id,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude`,
-					{
-						headers: getAuthHeaders()
-					}
+				const sessions = await fetchAllRows(
+					`${SUPABASE_URL}/rest/v1/flight_sessions?select=session_id,atc_id,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude`
 				);
-
-				if (!response.ok) throw new Error('Failed to fetch airframes');
-				
-				const sessions = await response.json();
 				const airframesMap = {};
 				
 				sessions.forEach(session => {
@@ -2362,16 +2368,9 @@
 
 		async function fetchAllRoutes() {
 			try {
-				const response = await fetch(
-					`${SUPABASE_URL}/rest/v1/flight_sessions?select=session_id,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude,current_speed,start_icao,current_icao&end_time=not.is.null`,
-					{
-						headers: getAuthHeaders()
-					}
+				const sessions = await fetchAllRows(
+					`${SUPABASE_URL}/rest/v1/flight_sessions?select=session_id,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude,current_speed,start_icao,current_icao&end_time=not.is.null`
 				);
-
-				if (!response.ok) throw new Error('Failed to fetch routes');
-				
-				const sessions = await response.json();
 				const routesMap = {};
 				
 				// For calculating airport coordinates - collect all coordinates per ICAO
@@ -2898,16 +2897,9 @@
 				const sevenDaysAgo = new Date();
 				sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 				
-				const response = await fetch(
-					`${SUPABASE_URL}/rest/v1/flight_sessions?start_time=gte.${sevenDaysAgo.toISOString()}&select=session_id,start_time,end_time,is_active`,
-					{
-						headers: getAuthHeaders()
-					}
+				const sessions = await fetchAllRows(
+					`${SUPABASE_URL}/rest/v1/flight_sessions?start_time=gte.${sevenDaysAgo.toISOString()}&select=session_id,start_time,end_time,is_active`
 				);
-
-				if (!response.ok) throw new Error('Failed to fetch daily stats');
-				
-				const sessions = await response.json();
 				const now = new Date();
 				
 				const labels = [];
@@ -2964,16 +2956,9 @@
 				const sevenWeeksAgo = new Date();
 				sevenWeeksAgo.setDate(sevenWeeksAgo.getDate() - 49); // 7 weeks * 7 days
 				
-				const response = await fetch(
-					`${SUPABASE_URL}/rest/v1/flight_sessions?start_time=gte.${sevenWeeksAgo.toISOString()}&select=session_id,start_time,end_time,is_active`,
-					{
-						headers: getAuthHeaders()
-					}
+				const sessions = await fetchAllRows(
+					`${SUPABASE_URL}/rest/v1/flight_sessions?start_time=gte.${sevenWeeksAgo.toISOString()}&select=session_id,start_time,end_time,is_active`
 				);
-
-				if (!response.ok) throw new Error('Failed to fetch weekly stats');
-				
-				const sessions = await response.json();
 				const now = new Date();
 				
 				const labels = [];
@@ -3031,16 +3016,9 @@
 
 		async function fetchTotalStats() {
 			try {
-				const response = await fetch(
-					`${SUPABASE_URL}/rest/v1/flight_sessions?select=session_id,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude`,
-					{
-						headers: getAuthHeaders()
-					}
+				const sessions = await fetchAllRows(
+					`${SUPABASE_URL}/rest/v1/flight_sessions?select=session_id,start_time,end_time,start_latitude,start_longitude,current_latitude,current_longitude`
 				);
-
-				if (!response.ok) throw new Error('Failed to fetch total stats');
-				
-				const sessions = await response.json();
 				
 				document.getElementById('totalCount').textContent = sessions.length;
 				document.getElementById('totalFlights').textContent = sessions.length.toLocaleString();
