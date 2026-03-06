@@ -1000,8 +1000,8 @@ function initializeApp() {
 		if (routeLayer) { map.removeLayer(routeLayer); routeLayer=null; }
 	}
 
-	// Fit both airports with padding so the route fills the visible map area
-	function focusRoute(airport1, airport2) {
+	// Fit both airports with padding so the route fills the visible map area — exposed globally for inline onclick
+	window.focusRoute = function(airport1, airport2) {
 		const c1 = airportCoordinates[airport1], c2 = airportCoordinates[airport2];
 		if (c1 && c2) {
 			map.fitBounds(L.latLngBounds([c1.lat,c1.lon],[c2.lat,c2.lon]), { padding:[60,60], maxZoom:12 });
@@ -1126,14 +1126,14 @@ function initializeApp() {
 		}).join('');
 	}
 
-	// Centre map and zoom to the selected flight
-	function focusPilot(sessionId) {
+	// Centre map and zoom to the selected flight — exposed globally for inline onclick
+	window.focusPilot = function(sessionId) {
 		const marker = planeMarkers[sessionId];
 		if (marker) {
-			map.setView(marker.getLatLng(), 10, { animate:true });
+			map.setView(marker.getLatLng(), 10, { animate: true });
 			marker.openPopup();
 		}
-	}
+	};
 
 	fetchActiveSessions();
 	fetchDailyStats();
