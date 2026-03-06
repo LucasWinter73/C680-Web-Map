@@ -914,7 +914,7 @@ function initializeApp() {
 		});
 		listEl.innerHTML = sorted.map((route,i) => {
 			const last = route.lastFlight ? formatRelativeTime(route.lastFlight) : 'Never';
-			return `<div class="route-card" onclick="focusRoute('${route.airport1}','${route.airport2}')">
+			return `<div class="route-card" onclick="focusRoute('${route.airport1}','${route.airport2}')" onmouseenter="highlightRoute('${route.routeKey}','${route.airport1}','${route.airport2}')" onmouseleave="unhighlightRoute('${route.routeKey}','${route.airport1}','${route.airport2}')">
 				<div class="route-top">
 					<div class="pilot-rank ${i<3?'top-3':''}">${i+1}</div>
 					<div class="route-visual">
@@ -960,27 +960,43 @@ function initializeApp() {
 		segs.push(cur); return segs;
 	}
 
+	// routeKey → { polylines, baseOpacity, baseWeight }
+	const routeMapLayers = {};
+	// icao → circleMarker
+	const airportMarkers = {};
+
 	function drawRoutesOnMap() {
 		if (routeLayer) map.removeLayer(routeLayer);
 		routeLayer = L.layerGroup();
+		Object.keys(routeMapLayers).forEach(k => delete routeMapLayers[k]);
+		Object.keys(airportMarkers).forEach(k => delete airportMarkers[k]);
 		if (!allRoutesData.length) return;
 		const maxF = Math.max(...allRoutesData.map(r=>r.flights));
+
+		// Polylines first
 		allRoutesData.forEach(route => {
 			const c1 = airportCoordinates[route.airport1], c2 = airportCoordinates[route.airport2];
 			if (!c1||!c2) return;
 			const weight = Math.max(0.5, Math.min(4, 0.5+(route.flights/maxF)*3.5));
+			const baseOpacity = 0.15+(route.flights/maxF)*0.25;
 			const segs = splitAtAntimeridian(getGreatCirclePath(c1.lat,c1.lon,c2.lat,c2.lon));
+			const polylines = [];
+			const avgD = route.flights>0?formatDuration(route.totalMinutes/route.flights):'0m';
+			const popupHtml = `<div class="popup-content"><h3>${route.airport1} ↔ ${route.airport2}</h3><div class="popup-callsign">Bidirectional Route</div><div class="popup-grid"><div class="popup-stat"><div class="popup-stat-value">${route.flights}</div><div class="popup-stat-label">Total Flights</div></div><div class="popup-stat"><div class="popup-stat-value">${Math.round(route.distance).toLocaleString()}</div><div class="popup-stat-label">Distance (NM)</div></div><div class="popup-stat"><div class="popup-stat-value">${avgD}</div><div class="popup-stat-label">Avg Duration</div></div></div></div>`;
 			segs.forEach(seg => {
 				if (seg.length < 2) return;
-				const pl = L.polyline(seg, { color:'#ffffff', weight, opacity:0.15+(route.flights/maxF)*0.25, smoothFactor:1 });
-				const avgD = route.flights>0?formatDuration(route.totalMinutes/route.flights):'0m';
-				pl.bindPopup(`<div class="popup-content"><h3>${route.airport1} ↔ ${route.airport2}</h3><div class="popup-callsign">Bidirectional Route</div><div class="popup-grid"><div class="popup-stat"><div class="popup-stat-value">${route.flights}</div><div class="popup-stat-label">Total Flights</div></div><div class="popup-stat"><div class="popup-stat-value">${Math.round(route.distance).toLocaleString()}</div><div class="popup-stat-label">Distance (NM)</div></div><div class="popup-stat"><div class="popup-stat-value">${avgD}</div><div class="popup-stat-label">Avg Duration</div></div></div></div>`);
+				const pl = L.polyline(seg, { color:'#ffffff', weight, opacity:baseOpacity, smoothFactor:1 });
+				pl.bindPopup(popupHtml);
 				pl.on('mouseover', function(e) { if(!map._popup||!map._popup.isOpen()){this.openPopup(e.latlng);this._hoverOpen=true;} });
 				pl.on('mouseout', function() { if(this._hoverOpen){this.closePopup();this._hoverOpen=false;} });
 				pl.on('click', function() { this._hoverOpen=false; });
 				routeLayer.addLayer(pl);
+				polylines.push(pl);
 			});
+			routeMapLayers[route.routeKey] = { polylines, baseOpacity, baseWeight: weight };
 		});
+
+		// Airport dots on top
 		Object.keys(airportCoordinates).forEach(icao => {
 			const coord = airportCoordinates[icao];
 			let tf = 0;
@@ -992,8 +1008,28 @@ function initializeApp() {
 			m2.on('mouseout', function() { if(this._hoverOpen){this.closePopup();this._hoverOpen=false;} });
 			m2.on('click', function() { this._hoverOpen=false; });
 			routeLayer.addLayer(m2);
+			airportMarkers[icao] = m2;
 		});
+
 		routeLayer.addTo(map);
+	}
+
+	function highlightRoute(routeKey, airport1, airport2) {
+		const entry = routeMapLayers[routeKey];
+		if (entry) entry.polylines.forEach(pl => pl.setStyle({ color:'#f5a623', opacity: Math.min(0.95, entry.baseOpacity * 4), weight: entry.baseWeight + 2 }));
+		[airport1, airport2].forEach(icao => {
+			const m = airportMarkers[icao];
+			if (m) m.setStyle({ fillColor:'#f5a623', color:'#f5a623', weight:2, fillOpacity:1 });
+		});
+	}
+
+	function unhighlightRoute(routeKey, airport1, airport2) {
+		const entry = routeMapLayers[routeKey];
+		if (entry) entry.polylines.forEach(pl => pl.setStyle({ color:'#ffffff', opacity: entry.baseOpacity, weight: entry.baseWeight }));
+		[airport1, airport2].forEach(icao => {
+			const m = airportMarkers[icao];
+			if (m) m.setStyle({ fillColor:'#ffffff', color:'#000000', weight:1, fillOpacity:0.9 });
+		});
 	}
 
 	function clearRouteLines() {
@@ -1010,7 +1046,28 @@ function initializeApp() {
 		} else if (c2) {
 			map.setView([c2.lat,c2.lon], 10, { animate:true });
 		}
-	}
+	};
+
+	window.highlightRoute = highlightRoute;
+	window.unhighlightRoute = unhighlightRoute;
+
+	window.highlightPlane = function(sessionId) {
+		const marker = planeMarkers[sessionId];
+		if (marker) {
+			marker.setIcon(L.divIcon({
+				className: 'plane-marker',
+				html: `<svg viewBox="0 0 24 24" style="transform:rotate(${marker._lastHeading||0}deg);fill:#f5a623;filter:drop-shadow(0 0 6px rgba(245,166,35,0.8));"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>`,
+				iconSize: [24, 24], iconAnchor: [12, 12]
+			}));
+		}
+	};
+
+	window.unhighlightPlane = function(sessionId) {
+		const marker = planeMarkers[sessionId];
+		if (marker) {
+			marker.setIcon(createPlaneIcon(marker._lastHeading || 0));
+		}
+	};
 
 	async function fetchDailyStats() {
 		try {
@@ -1095,8 +1152,11 @@ function initializeApp() {
 				planeMarkers[s.session_id].setLatLng([s.current_latitude,s.current_longitude]);
 				planeMarkers[s.session_id].setIcon(icon);
 				planeMarkers[s.session_id].setPopupContent(popup);
+				planeMarkers[s.session_id]._lastHeading = s.current_heading || 0;
 			} else {
-				planeMarkers[s.session_id] = L.marker([s.current_latitude,s.current_longitude],{icon}).addTo(map).bindPopup(popup);
+				const mk = L.marker([s.current_latitude,s.current_longitude],{icon}).addTo(map).bindPopup(popup);
+				mk._lastHeading = s.current_heading || 0;
+				planeMarkers[s.session_id] = mk;
 			}
 		});
 	}
@@ -1111,7 +1171,10 @@ function initializeApp() {
 		const sorted = [...sessions].sort((a,b) => new Date(a.start_time)-new Date(b.start_time));
 		el.innerHTML = sorted.map(s => {
 			const dur = Math.floor((new Date()-new Date(s.start_time))/60000);
-			return `<div class="pilot-card" onclick="focusPilot('${s.session_id}')">
+			return `<div class="pilot-card"
+				onclick="focusPilot('${s.session_id}')"
+				onmouseenter="highlightPlane('${s.session_id}')"
+				onmouseleave="unhighlightPlane('${s.session_id}')">
 				<div class="pilot-header">
 					<div class="pilot-name">${s.atc_id||'Unknown'}</div>
 					<div class="pilot-status"><div class="status-dot"></div>Live</div>
