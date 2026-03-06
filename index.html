@@ -989,7 +989,7 @@ function initializeApp() {
 				pl.bindPopup(popupHtml);
 				pl.on('mouseover', function(e) { if(!map._popup||!map._popup.isOpen()){this.openPopup(e.latlng);this._hoverOpen=true;} });
 				pl.on('mouseout', function() { if(this._hoverOpen){this.closePopup();this._hoverOpen=false;} });
-				pl.on('click', function() { this._hoverOpen=false; });
+				pl.on('click', function() { this._hoverOpen=false; scrollToRouteCard(route.routeKey); });
 				routeLayer.addLayer(pl);
 				polylines.push(pl);
 			});
@@ -1006,7 +1006,14 @@ function initializeApp() {
 			m2.bindPopup(`<div class="popup-content"><h3>${icao}</h3><div class="popup-callsign">Airport</div><div class="popup-grid"><div class="popup-stat"><div class="popup-stat-value">${tf}</div><div class="popup-stat-label">Total Flights</div></div><div class="popup-stat"><div class="popup-stat-value">${coord.lat.toFixed(2)}°</div><div class="popup-stat-label">Latitude</div></div><div class="popup-stat"><div class="popup-stat-value">${coord.lon.toFixed(2)}°</div><div class="popup-stat-label">Longitude</div></div></div></div>`);
 			m2.on('mouseover', function() { if(!map._popup||!map._popup.isOpen()){this.openPopup();this._hoverOpen=true;} });
 			m2.on('mouseout', function() { if(this._hoverOpen){this.closePopup();this._hoverOpen=false;} });
-			m2.on('click', function() { this._hoverOpen=false; });
+			m2.on('click', function() {
+				this._hoverOpen=false;
+				// Find the most-flown route involving this airport and scroll to it
+				const topRoute = allRoutesData
+					.filter(r => r.airport1===icao||r.airport2===icao)
+					.sort((a,b) => b.flights-a.flights)[0];
+				if (topRoute) scrollToRouteCard(topRoute.routeKey);
+			});
 			routeLayer.addLayer(m2);
 			airportMarkers[icao] = m2;
 		});
@@ -1156,6 +1163,8 @@ function initializeApp() {
 			} else {
 				const mk = L.marker([s.current_latitude,s.current_longitude],{icon}).addTo(map).bindPopup(popup);
 				mk._lastHeading = s.current_heading || 0;
+				mk._sessionId = s.session_id;
+				mk.on('click', function() { scrollToFlightCard(this._sessionId); });
 				planeMarkers[s.session_id] = mk;
 			}
 		});
@@ -1187,6 +1196,69 @@ function initializeApp() {
 				</div>
 			</div>`;
 		}).join('');
+	}
+
+	// Switch to overview tab and scroll+flash the flight card
+	function scrollToFlightCard(sessionId) {
+		// Switch to overview tab
+		document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+		document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+		const overviewTab = document.querySelector('.tab[data-tab="overview"]');
+		overviewTab.classList.add('active');
+		document.getElementById('overview-tab').classList.add('active');
+		clearRouteLines();
+
+		// Find and highlight the card
+		setTimeout(() => {
+			const card = document.querySelector(`.pilot-card[onmouseenter*="${sessionId}"]`) ||
+			             [...document.querySelectorAll('.pilot-card')].find(el => el.getAttribute('onclick')?.includes(sessionId));
+			if (card) {
+				card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				card.style.transition = 'box-shadow 0.2s ease, border-color 0.2s ease';
+				card.style.boxShadow = '0 0 0 2px #f5a623';
+				card.style.borderColor = '#f5a623';
+				setTimeout(() => {
+					card.style.boxShadow = '';
+					card.style.borderColor = '';
+				}, 1800);
+			}
+		}, 50);
+	}
+
+	// Switch to routes tab and scroll+flash the route card
+	function scrollToRouteCard(routeKey) {
+		// Switch to routes tab
+		document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+		document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+		const routesTab = document.querySelector('.tab[data-tab="routes"]');
+		routesTab.classList.add('active');
+		document.getElementById('routes-tab').classList.add('active');
+
+		// Load routes data if not already loaded
+		if (allRoutesData.length === 0) {
+			fetchAllRoutes().then(() => doScrollToRouteCard(routeKey));
+		} else {
+			drawRoutesOnMap();
+			doScrollToRouteCard(routeKey);
+		}
+	}
+
+	function doScrollToRouteCard(routeKey) {
+		setTimeout(() => {
+			const card = [...document.querySelectorAll('.route-card')].find(el =>
+				el.getAttribute('onmouseenter')?.includes(routeKey)
+			);
+			if (card) {
+				card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				card.style.transition = 'box-shadow 0.2s ease, border-color 0.2s ease';
+				card.style.boxShadow = '0 0 0 2px #f5a623';
+				card.style.borderColor = '#f5a623';
+				setTimeout(() => {
+					card.style.boxShadow = '';
+					card.style.borderColor = '';
+				}, 1800);
+			}
+		}, 80);
 	}
 
 	// Centre map and zoom to the selected flight — exposed globally for inline onclick
